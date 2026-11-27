@@ -23,6 +23,9 @@ checks:
       - '**/*.ts'
       - '**/*.toml'
       - '**/*.yml'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: deepeval|ragas|promptfoo|langfuse|langsmith
   fix: 先攒 20-50 条真实任务做回归集，接进 CI；每次改 prompt/模型都跑一遍。
   impact: 「感觉还行」是唯一验收标准，换个模型后全线退化却没人知道。

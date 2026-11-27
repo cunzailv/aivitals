@@ -15,12 +15,18 @@ checks:
       - '**/*.ts'
       - '**/*.env'
       - '**/.env*'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: OPENAI_API_KEY|ANTHROPIC_API_KEY|DASHSCOPE_API_KEY
       max_hits: 3
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: tenant.{0,10}(key|token)|per_tenant|key_?pool|rotate
   fix: key 按租户或按用途拆分，最小权限 + 定期轮换，泄露只影响一个租户。
   impact: 泄露一次等于全损，且无法定位是谁烧的。
@@ -42,16 +48,47 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: OpenAI\(|Anthropic\(|ChatOpenAI\(|\.invoke\(
       max_hits: 3
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: quota|rate_limit|ratelimit|budget|throttle|max_calls
   fix: 每租户/每任务设 token 与调用次数上限。
   impact: 一个死循环或一次刷接口，账单当场失控。
   derived_from: L3/pits/2
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app
+- id: L03-P0-021
+  layer: 3
+  group: A
+  title: Go：全局复用单一模型 key
+  severity: P0
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.go'
+      pattern: os\.Getenv\("(OPENAI|ANTHROPIC|DASHSCOPE|ARK|GEMINI)[A-Z_]*
+      max_hits: 1
+    - type: none
+      globs:
+      - '**/*.go'
+      pattern: tenant|Tenant|quota|Quota|budget|Budget
+  fix: key 由网关按租户下发或做代理转发，代码里只认网关地址。
+  impact: 一个客户刷爆额度，全平台一起停服，账单也算不清是谁的。
+  derived_from: L3/pits/1
   maturity_gate: internal
   as_of: '2026-11-27'
   applies_to:

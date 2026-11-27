@@ -13,12 +13,18 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: (run_shell|execute_sql|exec_command|shell_exec|run_bash)
       max_hits: 3
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: allowlist|allowed_tools|whitelist|sandbox|approval
   fix: 工具按动作拆细，参数白名单 + 审批 + 沙箱；不要给 Agent 一个能碰全系统的入口。
   impact: shell + SQL + 发邮件打包给 Agent，等于给它 root。

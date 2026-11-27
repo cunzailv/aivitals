@@ -13,6 +13,9 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: FastAPI\(|Flask\(|agent|chain
       max_hits: 1
     - type: file_absent

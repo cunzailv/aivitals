@@ -13,12 +13,18 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: OpenAI\(|Anthropic\(|ChatOpenAI\(|client\.chat|\.invoke\(
       max_hits: 3
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: usage|token_count|cost|billing|meter|budget
   fix: 每次模型调用统一埋点：tokens、模型、任务、租户，落到 usage 表，可按租户聚合与限额。
   impact: 只知道总账单，不知道哪个租户在亏钱，越用越亏。

@@ -1,0 +1,5 @@
+{
+ "maturity": "production",
+ "expect": ["L02-P0-019", "L03-P0-021", "L05-P0-022"],
+ "forbid": ["L02-P0-001"]
+}

@@ -13,6 +13,9 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: _sessions\s*=\s*\{\}|_state\s*=\s*\{\}|global\s+\w*sessions|MemorySaver\(|in_memory
       max_hits: 3
     - type: none
@@ -20,10 +23,63 @@ checks:
       - '**/*.py'
       - '**/*.ts'
       - '**/docker-compose.yml'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: redis|postgres|sqlite|checkpoint|pickle\.dump|s3|object_storage
   fix: 任务状态落到外部存储（redis / pg / checkpoint），进程可重启、可迁移。
   impact: 一次发布或 OOM，跑到一半的任务全部消失。
   derived_from: L5/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app
+- id: L05-P0-022
+  layer: 5
+  group: B
+  title: Go：全局 map 当会话状态
+  severity: P0
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.go'
+      pattern: var\s+\w+\s*=\s*(make\()?map\[string\]
+      max_hits: 1
+    - type: none
+      globs:
+      - '**/*.go'
+      pattern: sync\.(RWMutex|Mutex)|redis|Redis
+  fix: 会话写 Redis 或带锁的结构，进程重启后仍可恢复。
+  impact: 并发写 map 直接 panic；多副本部署后会话互相看不见。
+  derived_from: L5/pits/2
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app
+- id: L05-P0-023
+  layer: 5
+  group: B
+  title: Java：static Map 当会话/缓存
+  severity: P0
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.java'
+      pattern: static\s+(final\s+)?(Map|HashMap|ConcurrentHashMap)
+      max_hits: 1
+    - type: none
+      globs:
+      - '**/*.java'
+      pattern: Caffeine|Redis|redis|@Cacheable|EhCache
+  fix: 会话与缓存外置到 Redis/Caffeine，并设 TTL 与容量上限。
+  impact: 单机内存无限涨，重启全丢，横向扩容后数据不一致。
+  derived_from: L5/pits/2
   maturity_gate: internal
   as_of: '2026-11-27'
   applies_to:

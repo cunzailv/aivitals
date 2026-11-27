@@ -1,0 +1,6 @@
+<project><modelVersion>4.0.0</modelVersion>
+<groupId>com.example</groupId><artifactId>ai-service</artifactId><version>1.0</version>
+<dependencies>
+  <dependency><groupId>com.openai</groupId><artifactId>openai-java</artifactId><version>1.0</version></dependency>
+  <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId><version>3.2.0</version></dependency>
+</dependencies></project>

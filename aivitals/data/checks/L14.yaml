@@ -14,12 +14,18 @@ checks:
       - '**/*.py'
       - '**/*.ts'
       - '**/*.md'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: (system|prompt|instruction).{0,60}(不要|禁止|must not|never).{0,40}(执行|删除|drop|访问|access)
       max_hits: 3
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: guardrail|allowlist|policy_engine|permission_check|authoriz|tool_filter
   fix: 权限写在代码里：工具白名单、参数校验、危险动作人审；prompt 只能表达意图，不能当门禁。
   impact: system prompt 写「不要做 X」，实际没有任何机制拦住 X。

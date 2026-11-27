@@ -13,17 +13,83 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: await\s+.{0,60}(ainvoke|\.invoke|run_agent|agent\.run|chain\.a|agenerate)
       max_hits: 3
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: task_id|job_id|enqueue|celery|arq|bullmq|BackgroundTasks|asyncio\.Queue
   fix: 超过 30 秒的链路一律异步化：入队 → 立刻返回 task_id → 前端订阅进度。
   impact: 网关先超时，用户以为卡死，后台还在烧 token。
   derived_from: L2/pits/1
   maturity_gate: prototype
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app
+- id: L02-P0-019
+  layer: 2
+  group: A
+  title: Go：HTTP handler 里同步跑模型
+  severity: P0
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.go'
+      pattern: func .*http\.ResponseWriter
+      max_hits: 1
+    - type: regex_any
+      globs:
+      - '**/*.go'
+      pattern: CreateChatCompletion|openai\.|anthropic\.|GenerateContent
+      max_hits: 2
+    - type: none
+      globs:
+      - '**/*.go'
+      pattern: go func|go [a-zA-Z_][a-zA-Z0-9_]*\(
+  fix: handler 只负责入队并返回 202，worker 用 goroutine/队列消费，超时写进 context。
+  impact: 一次模型调用 20s，HTTP 超时先断，前端重试→重复扣费。
+  derived_from: L2/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app
+- id: L02-P0-020
+  layer: 2
+  group: A
+  title: Java：Controller 里同步调模型
+  severity: P0
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.java'
+      pattern: '@RestController|@Controller|@PostMapping|@RequestMapping'
+      max_hits: 1
+    - type: regex_any
+      globs:
+      - '**/*.java'
+      pattern: \.chat\(|ChatCompletion|openai|OpenAI
+      max_hits: 2
+    - type: none
+      globs:
+      - '**/*.java'
+      pattern: CompletableFuture|@Async|SseEmitter|Flux<
+  fix: Controller 只做参数校验与入队，长任务交给 @Async 或消息队列，返回任务 ID。
+  impact: Tomcat 线程池被占满，整个服务一起假死。
+  derived_from: L2/pits/1
+  maturity_gate: internal
   as_of: '2026-11-27'
   applies_to:
   - ai_native_app

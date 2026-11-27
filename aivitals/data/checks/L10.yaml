@@ -13,6 +13,9 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: exec\(\s*(request|user|input|payload|message|code)|eval\(\s*(request|user|input|payload)
       max_hits: 3
     - type: none
@@ -20,9 +23,40 @@ checks:
       - '**/*.py'
       - '**/*.ts'
       - '**/*.yml'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: docker|firecracker|gvisor|microvm|sandbox|isolat
   fix: 生成代码进独立沙箱（microVM / gVisor / 一次性容器），不与应用共享内核。
   impact: 共享内核，一次逃逸就是主机沦陷。
+  derived_from: L10/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app
+- id: L10-P0-024
+  layer: 10
+  group: B
+  title: Go/Java：直接执行模型生成的代码
+  severity: P0
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.go'
+      - '**/*.java'
+      pattern: exec\.Command|Runtime\.getRuntime\(\)\.exec|ProcessBuilder
+      max_hits: 1
+    - type: regex_any
+      globs:
+      - '**/*.go'
+      - '**/*.java'
+      pattern: LLM|llm|modelOutput|generatedCode|code\.
+      max_hits: 2
+  fix: 放到一次性容器/沙箱里跑，限制网络、文件与 CPU，超时强杀。
+  impact: 模型吐出 rm -rf 或反弹 shell，宿主机直接失守。
   derived_from: L10/pits/1
   maturity_gate: internal
   as_of: '2026-11-27'

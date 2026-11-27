@@ -61,7 +61,8 @@ def walk(root: Path) -> list[FileInfo]:
                     continue
             except OSError:
                 continue
-            if ext not in LANG_MAP and ext not in {".md", ".toml", ".yaml", ".yml", ".json", ".txt", ".cfg", ".ini", ".sql", ".dockerfile"} and not name.startswith("Dockerfile"):
+            special = {"go.mod", "go.sum", "pom.xml", "build.gradle", "settings.gradle"}
+            if ext not in LANG_MAP and ext not in {".md", ".toml", ".yaml", ".yml", ".json", ".txt", ".cfg", ".ini", ".sql", ".dockerfile"} and name not in special and not name.startswith("Dockerfile"):
                 continue
             text = _read_text(p)
             if not text:
@@ -96,8 +97,12 @@ def _deps_from(root: Path, files: list[FileInfo]) -> list[str]:
             for key in ("dependencies", "devDependencies", "peerDependencies"):
                 for k in (data.get(key) or {}):
                     deps.add(k.lower())
+        elif f.rel.endswith("pom.xml"):
+            txt = "\n".join(f.lines)
+            for m in re.finditer(r"<artifactId>([^<]+)</artifactId>", txt):
+                deps.add(m.group(1).lower())
         elif f.rel.endswith("go.mod"):
-            for m in re.finditer(r"^\s+(?:require\s+)?([a-zA-Z0-9_.\-/]+)\s+v", "\n".join(f.lines), re.M):
+            for m in re.finditer(r"^\s*(?:require\s+)?([a-zA-Z0-9_.\-/]+)\s+v", "\n".join(f.lines), re.M):
                 deps.add(m.group(1).lower())
     return sorted(deps)
 
@@ -108,7 +113,7 @@ def _ai_signals(deps: list[str], files: list[FileInfo]) -> list[str]:
         for pkg in AI_PKGS:
             if pkg in d:
                 hits.add(pkg)
-    joined = "\n".join("\n".join(f.lines[:200]) for f in files if f.ext in {".py", ".ts", ".js", ".go"} and not f.rel.startswith("corpus/"))
+    joined = "\n".join("\n".join(f.lines[:200]) for f in files if f.ext in {".py", ".ts", ".js", ".go", ".java", ".kt"} and not f.rel.startswith("corpus/"))
     for pkg in AI_PKGS:
         token = pkg.replace("-", "_")
         if re.search(rf"\b(import|from|require|import\()\s*[^\n]*{re.escape(token)}", joined, re.I):
@@ -119,7 +124,7 @@ def _ai_signals(deps: list[str], files: list[FileInfo]) -> list[str]:
 def _maturity(files: list[FileInfo], deps: list[str], text_all: str) -> str:
     has_docker = any(f.rel.startswith("Dockerfile") or f.rel.endswith("docker-compose.yml") or f.rel.endswith("docker-compose.yaml") for f in files)
     has_ci = any(".github/workflows/" in f.rel or f.rel.endswith(".gitlab-ci.yml") for f in files)
-    has_tests = any(re.search(r"(^|/)(tests?|__tests__|spec)/", f.rel) or f.rel.endswith(("_test.py", ".test.ts", ".spec.ts")) for f in files)
+    has_tests = any(re.search(r"(^|/)(tests?|__tests__|spec)/", f.rel) or f.rel.endswith(("_test.py", ".test.ts", ".spec.ts", "_test.go", "Test.java", "Tests.java")) for f in files)
     tenant_hits = len(re.findall(r"tenant_id|tenantId|tenant_id\b", text_all))
     multi = tenant_hits >= 3
     if multi:
@@ -131,7 +136,7 @@ def _maturity(files: list[FileInfo], deps: list[str], text_all: str) -> str:
     return "prototype"
 
 
-def build(root: Path) -> tuple[Profile, list[FileInfo]]:
+def build(root: Path, covered: set[str] | None = None) -> tuple[Profile, list[FileInfo]]:
     files = walk(root)
     deps = _deps_from(root, files)
     langs: dict[str, int] = {}
@@ -159,7 +164,7 @@ def build(root: Path) -> tuple[Profile, list[FileInfo]]:
     deployment = [f.rel for f in files if f.rel.startswith("Dockerfile") or "docker-compose" in f.rel or f.rel.endswith(".gitlab-ci.yml")]
 
     web = any(d in WEB_PKGS or any(w in d for w in WEB_PKGS) for d in deps) or bool(
-        re.search(r"(from\s+fastapi|import\s+fastapi|FastAPI\(|from\s+flask|Flask\(|@app\.(get|post)|express\(|NextRequest)", text_all)
+        re.search(r"(from\s+fastapi|import\s+fastapi|FastAPI\(|from\s+flask|Flask\(|@app\.(get|post)|express\(|NextRequest|http\.ResponseWriter|@RestController|@RequestMapping|@PostMapping)", text_all)
     )
     gatewayish = any(k in text_all.lower() for k in ("gateway", "fallback", "upstream", "model router", "load balance"))
     if ai and gatewayish and not web:
@@ -173,9 +178,9 @@ def build(root: Path) -> tuple[Profile, list[FileInfo]]:
     else:
         repo_type = "unclear"
 
-    COVERED = {"python", "typescript", "javascript"}
-    covered = sorted(l for l in langs if l in COVERED)
-    uncovered = sorted(l for l in langs if l not in COVERED)
+    cov = set(covered) if covered else {"python", "typescript", "javascript"}
+    covered_langs = sorted(l for l in langs if l in cov)
+    uncovered = sorted(l for l in langs if l not in cov)
 
     prof = Profile(
         root=str(root),
@@ -188,9 +193,9 @@ def build(root: Path) -> tuple[Profile, list[FileInfo]]:
         deps=deps[:80],
         entrypoints=sorted(set(entrypoints)),
         deployment=deployment,
-        has_tests=any(re.search(r"(^|/)(tests?|__tests__|spec)/", f.rel) for f in files),
+        has_tests=any(re.search(r"(^|/)(tests?|__tests__|spec)/", f.rel) or f.rel.endswith(("_test.py", "_test.go", "Test.java", "Tests.java")) for f in files),
         has_ci=any(".github/workflows/" in f.rel for f in files),
-        covered_languages=covered,
+        covered_languages=covered_langs,
         uncovered_languages=uncovered,
     )
     if not files:

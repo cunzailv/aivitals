@@ -11,7 +11,7 @@ from pathlib import Path
 from . import claims as claims_mod, detect, profile as prof, report, rules
 from .model import AuditResult
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(__file__).resolve().parent / "data"
 DEFAULT_CHECKS = DATA / "checks"
@@ -56,7 +56,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
                 print(f"[rules] {e}", file=sys.stderr)
         if not checks:
             raise SystemExit("没有可用规则")
-        profile, files = prof.build(root)
+        profile, files = prof.build(root, rules.languages_covered(checks))
         if args.maturity:
             profile.maturity = args.maturity
         result = detect.run_checks(profile, files, checks, layer_names())
@@ -224,7 +224,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
     total_expect = total_hit = total_forbid = total_fp = 0
     for case in cases:
         exp = json.loads((case / "expected.json").read_text(encoding="utf-8"))
-        profile, files = prof.build(case)
+        profile, files = prof.build(case, rules.languages_covered(checks))
         result = detect.run_checks(profile, files, checks, layer_names())
         got = {f.check_id for f in result.findings}
         expect = set(exp.get("expect", []))
@@ -291,7 +291,33 @@ def build_parser() -> argparse.ArgumentParser:
     m = sub.add_parser("mcp", help="以 MCP Server 方式运行（stdio）")
     m.add_argument("--checks", default=str(DEFAULT_CHECKS))
     m.set_defaults(func=cmd_mcp)
+
+    ing = sub.add_parser("ingest", help="把资料抽成候选规则（人工晋升后才生效）")
+    ing.add_argument("--source", required=True, help="md / txt / html / docx / pdf 文件")
+    ing.add_argument("--id", required=True, help="语料 id，如 geo-2026")
+    ing.add_argument("--draft-dir", default=str(DEFAULT_CHECKS / "_draft"), help="候选输出目录")
+    ing.add_argument("--no-source", action="store_true", help="只出候选，不存原文")
+    ing.set_defaults(func=cmd_ingest)
     return p
+
+
+def cmd_ingest(args: argparse.Namespace) -> int:
+    from . import ingest as ingest_mod
+    source = Path(args.source).expanduser()
+    if not source.exists():
+        raise SystemExit(f"资料不存在：{source}")
+    info = ingest_mod.ingest(source, args.id, ROOT, Path(args.draft_dir).expanduser(),
+                              keep_source=not args.no_source)
+    print(f"AIVitals ingest · {args.id}")
+    print(f"  {info['chars']} 字 · {info['sections']} 节 · {info['candidates']} 条候选")
+    if info["by_layer"]:
+        layers = " · ".join(f"L{k}:{v}" for k, v in info["by_layer"].items() if k)
+        print(f"  层分布：{layers or '未识别'}")
+    print(f"  候选：{info['draft']}")
+    if info["source_dir"]:
+        print(f"  原文：{info['source_dir']}（私有，未进公开仓库）")
+    print("  下一步：挑候选 → 补 detect/impact/fix/derived_from → 加 fixture → aivitals eval")
+    return 0
 
 
 def cmd_mcp(args: argparse.Namespace) -> int:

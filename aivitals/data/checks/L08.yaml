@@ -13,12 +13,18 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: add_documents|add_texts|\.upsert\(|vector.{0,10}add
       max_hits: 3
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: summar|dedup|evict|ttl|decay|compact
   fix: 记忆分层：原文冷存、笔记提炼、结构化沉淀，按 TTL 淘汰，定期去重。
   impact: 检索回来全是噪声，还不如不记。

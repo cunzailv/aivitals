@@ -13,3 +13,6 @@ aivitals-report/
 # 原始资料默认私有，不进公开仓库
 corpus/sources/*
 !corpus/sources/.gitkeep
+
+# 候选规则来自私有资料，默认不公开
+aivitals/data/checks/_draft/

@@ -13,12 +13,18 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: handoff|sub_agent|subagent|agent_registry
       min: 2
     - type: none
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: trace_id|correlation_id|span|opentelemetry
   fix: 一次任务用同一个 trace_id 串起所有 handoff。
   impact: 多 Agent 交接后排障只能靠猜。

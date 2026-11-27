@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.0 — 2026-11-27
+
+### 更聪明
+
+- **资料入账**：`aivitals ingest` 把 md / txt / html / docx / pdf 切成节、抽候选、标层与级别。一份 1 万字报告实测出 27 条候选（41 节），原文与候选都不进公开仓库。
+- **Go / Java 覆盖**：新增 6 条语言专用规则（Go handler 同步跑模型、Go 全局 map 会话、Java static Map 缓存、Go/Java 直接执行生成代码等），语言覆盖从 3 种到 5 种。
+- **覆盖率改为从规则反推**：`languages_covered` 扫描规则里真实出现的扩展名，不再靠声明。原来声称支持 JavaScript 但规则只扫 `.ts`，这次补齐 `.js/.tsx/.jsx`。
+- **画像修正**：`go.mod` / `pom.xml` 参与依赖解析；Go `_test.go`、Java `*Test.java` 计入测试；Go HTTP 与 Spring 注解计入 Web 特征。
+
+### 验证
+
+- 4 个标注样例（Python ×2、Go、Java）：召回 19/19，误报 0
+- 17 个单元测试全过（新增 5 个 ingest 测试）
+
 ## v0.1.0 — 2026-11-27
 
 首个可用版本：能 clone 下来直接跑，能出报告，能被 AI 客户端调用。

@@ -16,6 +16,9 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: agent|chain|llm
       max_hits: 1
   fix: 写清 20-50 条真实任务与验收口径，再接模型。

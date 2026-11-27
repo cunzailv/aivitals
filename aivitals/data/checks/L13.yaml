@@ -13,6 +13,9 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: logger\.|logging\.|console\.log
       max_hits: 2
     - type: none
@@ -20,6 +23,9 @@ checks:
       - '**/*.py'
       - '**/*.ts'
       - '**/*.toml'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: opentelemetry|trace_id|span|langfuse|langsmith|openllmetry
   fix: 接入 trace，按任务回放。
   impact: 投诉「答错了」时只能靠猜。

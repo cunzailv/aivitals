@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aivitals"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI architecture check for AI projects: layer audit, bug-prone pattern scan, claim-vs-code verification. 100% local."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,6 +26,7 @@ dependencies = ["pyyaml>=6"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "build>=1.2"]
+docs = ["python-docx>=1.1", "pypdf>=4"]
 
 [project.scripts]
 aivitals = "aivitals.cli:main"

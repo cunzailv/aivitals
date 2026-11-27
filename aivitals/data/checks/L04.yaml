@@ -13,6 +13,9 @@ checks:
       globs:
       - '**/*.py'
       - '**/*.ts'
+      - '**/*.js'
+      - '**/*.tsx'
+      - '**/*.jsx'
       pattern: OpenAI\(|Anthropic\(|openai\.chat|anthropic\.messages|ChatOpenAI\(
       min: 3
     - type: file_absent

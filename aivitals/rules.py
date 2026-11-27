@@ -70,3 +70,35 @@ def load(checks_dir: Path) -> tuple[list[CheckDef], list[str]]:
     if dup:
         errors.append(f"规则 id 重复: {sorted(dup)}")
     return checks, errors
+
+
+EXT_LANG = {
+    ".py": "python", ".ts": "typescript", ".tsx": "typescript",
+    ".js": "javascript", ".jsx": "javascript", ".go": "go", ".java": "java",
+    ".rs": "rust", ".rb": "ruby", ".php": "php", ".kt": "kotlin",
+}
+
+
+def languages_covered(checks) -> set[str]:
+    """从规则的 globs 反推实际覆盖的语言。
+
+    覆盖率不靠声明，靠规则里真的出现了哪种扩展名；一条 go 规则都没有时，
+    报告必须说 go 未覆盖，而不是假装扫过。
+    """
+    langs: set[str] = set()
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            for g in node.get("globs") or []:
+                for ext, lang in EXT_LANG.items():
+                    if g.endswith(ext):
+                        langs.add(lang)
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    for c in checks:
+        walk(c.detect)
+    return langs

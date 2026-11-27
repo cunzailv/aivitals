@@ -21,7 +21,7 @@ aivitals scan ./your-ai-project --format md,json,sarif
 
 ## 为什么不是又一个「AI 点评器」
 
-1. **规则是资产，LLM 是工具**。18 条规则是结构化 YAML，可执行、可回归、可被 PR 修改；结论必须带证据，无证据直接丢弃。
+1. **规则是资产，LLM 是工具**。24 条规则是结构化 YAML，可执行、可回归、可被 PR 修改；结论必须带证据，无证据直接丢弃。
 2. **先画像，再判定**。同一规则在 `prototype` / `internal` / `production` / `multi_tenant` 四档结论不同，报告必须打印按哪档判。
 3. **覆盖率不足就不给健康结论**。语言没覆盖、层没跑到、规则不适用，都会写进「覆盖与局限」，不会输出一个假的 `adequate`。
 
@@ -42,7 +42,7 @@ cd aivitals && pip install -e .
 ## 快速开始
 
 ```bash
-aivitals checks                                # 列出 18 条规则与 17 层归属
+aivitals checks                                # 列出 24 条规则与 17 层归属
 aivitals scan ./repo                           # 默认输出 md + json + sarif
 aivitals scan https://github.com/org/repo --out ./aivitals-report
 aivitals scan ./repo --doc README.md           # 体检 + 声明对正，合并成一份报告
@@ -54,6 +54,16 @@ aivitals mcp                                   # 以 MCP Server 运行，给 AI 
 ```
 
 `--maturity production` 可覆盖档位；`--fail-on P0` 让 CI 在 P0 时失败（退出码 2）。
+
+## 喂资料：让它越用越准
+
+规则库不是写完就停。把一份架构报告或踩坑清单喂进去：
+
+```bash
+aivitals ingest --source ./报告.docx --id geo-2026
+```
+
+它会切节、抽候选、标好层与级别，产出 `_draft/geo-2026.candidates.yaml` 待审清单。**候选不参与扫描**，人工补上 `detect` 与 fixture 后才会生效——细节见 [`docs/ingest.md`](docs/ingest.md)。
 
 ## 给 AI 用（MCP）
 
@@ -99,17 +109,17 @@ SARIF 可直接上传到 GitHub Code Scanning，PR 里出批注。
 已实现：
 
 - 项目画像（类型 / 档位 / 语言 / 依赖 / 入口 / 部署 / 测试 / CI）
-- **18 条规则，覆盖全部 17 层**（P0 7 条、P1 8 条、P2 1 条、P3 2 条）
+- **24 条规则，覆盖全部 17 层**（含 6 条 Go/Java 专用规则）
 - 静态检测：regex / 文件存在性 / 依赖 / 组合条件，7 种原语
 - 证据链：每条结论附最多 3 条 `file:line`，无证据不进报告
 - claim 校验：声明抽取 → 9 条通用谓词 + 3 条 GEO 领域谓词 → 代码探针 → 四态判定
 - 四类输出 + 退出码 + 基线（只报新增）
 - MCP Server（4 个工具）、GitHub Action、`pytest` 单测（12 个）、CI（3 个 Python 版本）
-- eval：2 个标注样例，bad 召回 `13/13`、good 误报 `0`（样本少，只证明链路成立）
+- eval：4 个标注样例（Python / Go / Java），召回 `19/19`、误报 `0`（样本少，只证明链路成立）
 
 未实现，且**不会假装实现**：
 
-- 只覆盖 Python / TypeScript / JavaScript；Go / Java 等会明确标注「未纳入检测」
+- 覆盖 Python / TypeScript / JavaScript / Go / Java；Rust / Ruby / PHP / Kotlin / C# 仍标注「未纳入检测」
 - 无 LLM 语义复核（`--offline` 是唯一模式）
 - 英文文档的声明识别率低于中文
 - 不做依赖漏洞扫描、不做安全审计

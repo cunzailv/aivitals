@@ -18,7 +18,7 @@ from . import claims as claims_mod, detect, profile as prof, report, rules
 
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "aivitals"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.2.0"
 
 TOOLS = [
     {
@@ -90,7 +90,7 @@ def _audit(path: str, maturity: str | None, checks_dir: Path) -> str:
     if not root.exists():
         return f"路径不存在：{root}"
     checks = _load(checks_dir)
-    profile, files = prof.build(root)
+    profile, files = prof.build(root, rules.languages_covered(checks))
     if maturity:
         profile.maturity = maturity
     result = detect.run_checks(profile, files, checks, _layers(checks_dir))
