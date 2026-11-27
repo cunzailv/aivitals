@@ -10,17 +10,36 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 authors = [{name = "aivitals contributors"}]
-keywords = ["ai", "architecture", "audit", "static-analysis", "mcp"]
+keywords = ["ai", "architecture", "audit", "static-analysis", "mcp", "llm", "agent"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Quality Assurance",
+  "Typing :: Typed",
+]
 dependencies = ["pyyaml>=6"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "build>=1.2"]
 
 [project.scripts]
 aivitals = "aivitals.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/cunzailv/aivitals"
+Issues = "https://github.com/cunzailv/aivitals/issues"
+Changelog = "https://github.com/cunzailv/aivitals/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["aivitals*"]
 
 [tool.setuptools.package-data]
-aivitals = ["../checks/*.yaml"]
+aivitals = ["data/checks/*.yaml", "data/claims/*.yaml", "data/architecture.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

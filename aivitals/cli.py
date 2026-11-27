@@ -13,8 +13,9 @@ from .model import AuditResult
 
 VERSION = "0.1.0"
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_CHECKS = ROOT / "checks"
-CORPUS = ROOT / "corpus" / "architecture.json"
+DATA = Path(__file__).resolve().parent / "data"
+DEFAULT_CHECKS = DATA / "checks"
+CORPUS = DATA / "architecture.json"
 
 
 def layer_names() -> dict[int, str]:
@@ -60,17 +61,67 @@ def cmd_scan(args: argparse.Namespace) -> int:
             profile.maturity = args.maturity
         result = detect.run_checks(profile, files, checks, layer_names())
 
+        claim_results, claim_docs, claim_pairs = [], [], []
+        if args.doc:
+            preds, perrs = claims_mod.load_predicates(Path(args.predicates))
+            for e in perrs:
+                print(f"[claims] {e}", file=sys.stderr)
+            for raw in args.doc:
+                p = Path(raw) if Path(raw).is_absolute() else root / raw
+                if p.exists():
+                    claim_docs.append(p)
+                    rs = claims_mod.run(root, p, files, profile, preds)
+                    claim_results.extend(rs)
+                    claim_pairs.append((p, rs))
+                else:
+                    print(f"[claims skip] 文档不存在：{p}", file=sys.stderr)
+
+        baseline_note = ""
+        if args.baseline:
+            bp = Path(args.baseline).expanduser()
+
+            def _fp(f):
+                ev = f.evidence[0] if f.evidence else None
+                return f"{f.check_id}|{ev.file if ev else ''}|{ev.line if ev else 0}"
+
+            fps = {_fp(f) for f in result.findings}
+            if args.update_baseline:
+                bp.parent.mkdir(parents=True, exist_ok=True)
+                bp.write_text(json.dumps({"version": 1, "fingerprints": sorted(fps)},
+                                         ensure_ascii=False, indent=1), encoding="utf-8")
+                baseline_note = f"基线已写入 {bp}（{len(fps)} 条）"
+            else:
+                known = set()
+                if bp.exists():
+                    known = set(json.loads(bp.read_text(encoding="utf-8")).get("fingerprints", []))
+                kept = [f for f in result.findings if _fp(f) not in known]
+                result.suppressed = [f for f in result.findings if _fp(f) in known]
+                suppressed = len(result.suppressed)
+                result.findings = kept
+                baseline_note = f"基线抑制 {suppressed} 条既有问题（仅报新增）"
+
         outdir = Path(args.out).expanduser()
         outdir.mkdir(parents=True, exist_ok=True)
         formats = [f.strip().lower() for f in args.format.split(",") if f.strip()]
         written = []
         if "json" in formats:
             p = outdir / "report.json"
-            p.write_text(json.dumps(report.to_json(result), ensure_ascii=False, indent=1), encoding="utf-8")
+            data = report.to_json(result)
+            if claim_pairs:
+                data["claims"] = {
+                    "documents": [str(d) for d, _ in claim_pairs],
+                    "results": [r.to_dict() for _, rs in claim_pairs for r in rs],
+                    "disclaimer": "未找到证据不等于没有实现；矛盾仅表示当前代码与声明不一致。",
+                }
+            p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
             written.append(p)
         if "md" in formats or "markdown" in formats:
             p = outdir / "report.md"
-            p.write_text(report.to_markdown(result), encoding="utf-8")
+            md = report.to_markdown(result)
+            if claim_pairs:
+                md += "\n\n## 声明对正\n\n" + "\n\n".join(
+                    claims_mod.to_markdown(rs, d) for d, rs in claim_pairs)
+            p.write_text(md, encoding="utf-8")
             written.append(p)
         if "sarif" in formats:
             p = outdir / "report.sarif"
@@ -213,12 +264,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--out", default="./aivitals-report", help="输出目录")
     s.add_argument("--fail-on", choices=["P0", "P1", "P2", "P3"], help="达到该级别返回非零退出码")
     s.add_argument("--keep-clone", action="store_true", help="保留临时 clone（调试用）")
+    s.add_argument("--doc", action="append", default=None, help="同时校验声明：相对仓库的文档路径，可多次")
+    s.add_argument("--predicates", default=str(DATA / "claims" / "predicates.yaml"))
+    s.add_argument("--baseline", help="基线文件：只报基线之外的新增问题")
+    s.add_argument("--update-baseline", action="store_true", help="把当前问题写成基线")
     s.set_defaults(func=cmd_scan)
 
     cl = sub.add_parser("claims", help="校验文档声明与代码是否一致")
     cl.add_argument("target", help="仓库路径")
     cl.add_argument("--doc", action="append", default=None, help="相对仓库的文档路径，可多次；默认 README.md")
-    cl.add_argument("--predicates", default=str(ROOT / "claims" / "predicates.yaml"))
+    cl.add_argument("--predicates", default=str(DATA / "claims" / "predicates.yaml"))
     cl.add_argument("--out", default="./aivitals-report")
     cl.set_defaults(func=cmd_claims, doc=["README.md"] if True else [])
 
@@ -232,7 +287,16 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--min-recall", type=float, default=0.8)
     e.add_argument("--verbose", action="store_true")
     e.set_defaults(func=cmd_eval)
+
+    m = sub.add_parser("mcp", help="以 MCP Server 方式运行（stdio）")
+    m.add_argument("--checks", default=str(DEFAULT_CHECKS))
+    m.set_defaults(func=cmd_mcp)
     return p
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:
+    from .mcp_server import serve
+    return serve(Path(args.checks))
 
 
 def main(argv: list[str] | None = None) -> int:

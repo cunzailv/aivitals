@@ -1,0 +1,30 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L15-P3-017
+  layer: 15
+  group: D
+  title: 没有面向客户的控制面
+  severity: P3
+  kind: missing_capability
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: tenant_id|tenantId
+      max_hits: 1
+    - type: file_absent
+      globs:
+      - '**/admin/**'
+      - '**/console/**'
+      - '**/dashboard/**'
+  fix: 把知识库、流程、配额做成可配置界面。
+  impact: 客户无法自助配置，交付成本线性上涨。
+  derived_from: L15/pits/2
+  maturity_gate: production
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

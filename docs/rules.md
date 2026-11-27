@@ -8,7 +8,7 @@
 
 ## 文件结构
 
-按层分文件：`checks/L02.yaml`、`checks/L14.yaml`……
+按层分文件：`aivitals/data/checks/L02.yaml`、`aivitals/data/checks/L14.yaml`……
 
 ```yaml
 yaml_version: 0.1
@@ -61,7 +61,7 @@ checks:
 
 ## 新增规则的最小流程
 
-1. 在 `checks/L{层}.yaml` 加条目，写 `derived_from`
+1. 在 `aivitals/data/checks/L{层}.yaml` 加条目，写 `derived_from`
 2. 在 `fixtures/` 造一个能触发它的最小样例，并写进 `expected.json`
 3. 跑 `aivitals eval --verbose`，确认 `recall` 上升且**误报仍为 0**
 4. 报告里验证证据真的指到了对的代码行

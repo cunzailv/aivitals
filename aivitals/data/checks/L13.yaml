@@ -1,0 +1,31 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L13-P1-016
+  layer: 13
+  group: C
+  title: 只有文本日志，没有 trace
+  severity: P1
+  kind: missing_capability
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: logger\.|logging\.|console\.log
+      max_hits: 2
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      - '**/*.toml'
+      pattern: opentelemetry|trace_id|span|langfuse|langsmith|openllmetry
+  fix: 接入 trace，按任务回放。
+  impact: 投诉「答错了」时只能靠猜。
+  derived_from: L13/pits/2
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

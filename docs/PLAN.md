@@ -6,6 +6,9 @@
 
 ---
 
+
+> **实现状态（2026-11-27 更新）**：M0-M3 已落地并可运行 —— 18 条规则覆盖 17 层、四态声明校验、四类报告、eval 门禁、MCP Server、GitHub Action、CI 与单测；`v0.1.0` 已打 tag 并产出 wheel。M4（社区语料与规则市场）尚未开始。
+
 ## 0. 结论先行
 
 **一句话定位**：给任意一个 AI 项目做「证据级体检」——架构缺哪层、哪里必然出 bug、对外宣称与代码是否对得上，全部结论可回溯到 `file:line`。
@@ -91,7 +94,7 @@
 
 ### 4.1 从 17 层派生规则的四条通道
 
-页面已有的结构化数据（`corpus/architecture.json`：17 层、62 模块、250 要点）不是文档，而是规则原料。派生规则不需要人肉逐条写：
+页面已有的结构化数据（`aivitals/data/architecture.json`：17 层、62 模块、250 要点）不是文档，而是规则原料。派生规则不需要人肉逐条写：
 
 | 源字段 | 派生为什么 | 检测类型 |
 |---|---|---|
@@ -236,7 +239,7 @@ aivitals/
 ├── pyproject.toml
 ├── corpus/
 │   └── architecture.json   # 17 层结构化数据（已导出）
-├── checks/
+├── aivitals/data/checks/
 │   ├── L01-product.yaml
 │   ├── L02-delivery.yaml
 │   ├── ...
@@ -280,7 +283,7 @@ aivitals/
 ## 10. 开源治理
 
 - **双许可**：引擎 Apache-2.0（商用友好，利于企业接入）；规则库与 17 层文档 CC-BY-4.0（允许转载，要求署名，防止被闭源包装成付费产品）。
-- **规则贡献流程**：PR 只改 `checks/*.yaml` + 对应 fixture → CI 自动跑 eval → 维护者审"是否可被证据验证"→ 合并。不接受只写"建议优化"的规则。
+- **规则贡献流程**：PR 只改 `aivitals/data/aivitals/data/checks/*.yaml` + 对应 fixture → CI 自动跑 eval → 维护者审"是否可被证据验证"→ 合并。不接受只写"建议优化"的规则。
 - **规则生命周期**：每条带 `as_of`；每季度复审，过期标记 `stale` 并在报告中提示"该规则可能已过时"，而不是继续输出旧结论。
 - **版本**：`v0.x` 期间规则 schema 可破坏性变更，必须写迁移说明；`v1.0` 冻结 schema。
 - **不做 SaaS**：开源版保持本地运行；若将来做托管服务，必须是独立仓库、独立品牌，避免"开源引流"争议。
@@ -370,8 +373,8 @@ report_wording:
 
 | 资料性质 | 典型内容 | 入库形态 | 生效方式 |
 |---|---|---|---|
-| **规则 / 原则** | 架构文章、踩坑清单、验收标准、评审意见 | `checks/*.yaml` | 静态执行，进 eval 回归 |
-| **判据 / 定义** | "什么算多租户"、"什么算成本归属"、"什么叫有评测" | `claims/predicates.yaml` | 生成探针，四态判定 |
+| **规则 / 原则** | 架构文章、踩坑清单、验收标准、评审意见 | `aivitals/data/aivitals/data/checks/*.yaml` | 静态执行，进 eval 回归 |
+| **判据 / 定义** | "什么算多租户"、"什么算成本归属"、"什么叫有评测" | `aivitals/data/claims/predicates.yaml` | 生成探针，四态判定 |
 | **样例 / 事故** | 有 bug 的仓库、线上事故复盘、别人的审计报告 | `fixtures/` + `expected/*.json` | 提升 recall、压误报 |
 | **表述 / 宣传** | 产品简介、官网文案、BP、白皮书 | `corpus/sources/claims/` | claim 抽取语料 |
 
@@ -384,9 +387,9 @@ aivitals ingest <path|url> [--kind rule|case|claim|doc]
 ```
 
 1. **落地原文**：存到 `corpus/sources/{YYYYMMDD}-{slug}/`，记录 `sha256`、来源 URL、抓取时间、原始格式。原文永不改写，只做引用。
-2. **抽取候选**（LLM）：按 `--kind` 输出候选——规则候选（含检测信号草案）、谓词候选（含探针草案）、声明候选、反模式候选。抽取结果写进 `checks/_draft/`，**不直接生效**。
+2. **抽取候选**（LLM）：按 `--kind` 输出候选——规则候选（含检测信号草案）、谓词候选（含探针草案）、声明候选、反模式候选。抽取结果写进 `aivitals/data/checks/_draft/`，**不直接生效**。
 3. **人工确认**：`aivitals review` 逐条 accept / reject / edit。规则必须能回答"用什么证据证明"，答不上来的直接拒。
-4. **晋升**：通过后进入 `checks/` 或合并进已有规则；谓词进 `claims/predicates.yaml`；样例进 `fixtures/` 并写 `expected/`。
+4. **晋升**：通过后进入 `aivitals/data/checks/` 或合并进已有规则；谓词进 `aivitals/data/claims/predicates.yaml`；样例进 `fixtures/` 并写 `expected/`。
 5. **回归**：新规则必须跑 `aivitals eval`，健康 fixture 零误报才允许合并。
 
 ### 13.3 直接复用你已有的记忆四层
@@ -396,8 +399,8 @@ aivitals ingest <path|url> [--kind rule|case|claim|doc]
 | 记忆层 | 在本项目里的位置 | 收敛动作 |
 |---|---|---|
 | L1 原始日志 | `corpus/sources/` 原文 | 只读、可回查 |
-| L2 零碎笔记 | `checks/_draft/` 候选 | 人审后淘汰/合并 |
-| L3 结构化手册 | `checks/`、`claims/predicates.yaml` | `aivitals compact` 去重、补 `derived_from` |
+| L2 零碎笔记 | `aivitals/data/checks/_draft/` 候选 | 人审后淘汰/合并 |
+| L3 结构化手册 | `aivitals/data/checks/`、`aivitals/data/claims/predicates.yaml` | `aivitals compact` 去重、补 `derived_from` |
 | L4 预加载上下文 | 判定时按画像加载的规则子集 | 不全量塞 prompt |
 
 `compact` 就是这里的 Dreaming：把重复规则合并、把 `as_of` 过期的标 stale、把没有出处的候选清掉。

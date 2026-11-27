@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e . pytest
+      - name: Unit tests
+        run: python -m pytest -q
+      - name: Rule eval gate
+        run: aivitals eval
+      - name: Scan the bad fixture (expect exit code 2)
+        run: |
+          aivitals scan fixtures/bad-sync-long-task --fail-on P0 --out /tmp/report || test $? -eq 2
+      - name: Scan the good fixture (expect exit code 0)
+        run: aivitals scan fixtures/good-production-app --fail-on P0 --out /tmp/report-good
+      - name: MCP smoke test
+        run: |
+          printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list"}\n' | aivitals mcp | tail -1 | python -c "import json,sys; d=json.load(sys.stdin); assert len(d['result']['tools']) == 4"
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*

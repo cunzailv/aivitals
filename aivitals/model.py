@@ -108,6 +108,7 @@ class AuditResult:
     findings: list[Finding]
     layers: list[LayerStatus]
     skipped: list[dict[str, str]] = field(default_factory=list)
+    suppressed: list[Finding] = field(default_factory=list)
     generated_at: str = ""
     version: str = "0.1.0"
 

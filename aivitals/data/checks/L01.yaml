@@ -1,0 +1,28 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L01-P3-013
+  layer: 1
+  group: A
+  title: 没有定义「什么叫做完」
+  severity: P3
+  kind: missing_capability
+  detect:
+    all_of:
+    - type: file_absent
+      globs:
+      - README.md
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: agent|chain|llm
+      max_hits: 1
+  fix: 写清 20-50 条真实任务与验收口径，再接模型。
+  impact: 没有验收定义，换模型后全线退化也没人知道。
+  derived_from: L1/pits/2
+  maturity_gate: prototype
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

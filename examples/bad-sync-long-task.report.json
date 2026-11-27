@@ -4,16 +4,17 @@
   "name": "aivitals",
   "version": "0.1.0"
  },
- "generated_at": "2026-11-27T21:44:18+08:00",
+ "generated_at": "2026-11-27T21:58:01+08:00",
  "disclaimer": "架构体征不等于安全审计，不能替代渗透测试；claim 结论仅表示未找到证据或与实现矛盾。",
  "summary": {
   "p0": 7,
-  "p1": 5,
+  "p1": 6,
   "p2": 0,
-  "p3": 0,
-  "layers_checked": 12,
+  "p3": 1,
+  "baseline_suppressed": 0,
+  "layers_checked": 17,
   "layers_total": 17,
-  "coverage": 0.71,
+  "coverage": 1.0,
   "covered_languages": [
    "python"
   ],
@@ -54,8 +55,8 @@
   {
    "layer": 1,
    "name": "产品与场景层",
-   "status": "unchecked",
-   "findings": 0
+   "status": "partial",
+   "findings": 1
   },
   {
    "layer": 2,
@@ -66,8 +67,8 @@
   {
    "layer": 3,
    "name": "身份、租户与配额层",
-   "status": "weak",
-   "findings": 1
+   "status": "missing",
+   "findings": 2
   },
   {
    "layer": 4,
@@ -114,7 +115,7 @@
   {
    "layer": 11,
    "name": "多智能体协作层",
-   "status": "unchecked",
+   "status": "present",
    "findings": 0
   },
   {
@@ -126,7 +127,7 @@
   {
    "layer": 13,
    "name": "可观测与运维层",
-   "status": "unchecked",
+   "status": "present",
    "findings": 0
   },
   {
@@ -138,13 +139,13 @@
   {
    "layer": 15,
    "name": "平台控制面",
-   "status": "unchecked",
+   "status": "present",
    "findings": 0
   },
   {
    "layer": 16,
    "name": "基础设施与推理层",
-   "status": "unchecked",
+   "status": "present",
    "findings": 0
   },
   {
@@ -294,6 +295,35 @@
    "derived_from": "L14/pits/1"
   },
   {
+   "check_id": "L03-P1-014",
+   "layer": 3,
+   "group": "A",
+   "title": "没有配额与预算上限",
+   "severity": "P1",
+   "kind": "missing_capability",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "llm_extra.py",
+     "line": 3,
+     "snippet": "c1 = OpenAI()"
+    },
+    {
+     "file": "llm_extra.py",
+     "line": 4,
+     "snippet": "c2 = Anthropic()"
+    },
+    {
+     "file": "llm_extra.py",
+     "line": 5,
+     "snippet": "c3 = ChatOpenAI()"
+    }
+   ],
+   "impact": "一个死循环或一次刷接口，账单当场失控。",
+   "fix": "每租户/每任务设 token 与调用次数上限。",
+   "derived_from": "L3/pits/2"
+  },
+  {
    "check_id": "L04-P1-003",
    "layer": 4,
    "group": "B",
@@ -412,6 +442,30 @@
    "impact": "只知道总账单，不知道哪个租户在亏钱，越用越亏。",
    "fix": "每次模型调用统一埋点：tokens、模型、任务、租户，落到 usage 表，可按租户聚合与限额。",
    "derived_from": "L17/pits/1"
+  },
+  {
+   "check_id": "L01-P3-013",
+   "layer": 1,
+   "group": "A",
+   "title": "没有定义「什么叫做完」",
+   "severity": "P3",
+   "kind": "missing_capability",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "<repo>",
+     "line": 0,
+     "snippet": "未找到 ['README.md']"
+    },
+    {
+     "file": "app.py",
+     "line": 3,
+     "snippet": "from langchain_openai import ChatOpenAI"
+    }
+   ],
+   "impact": "没有验收定义，换模型后全线退化也没人知道。",
+   "fix": "写清 20-50 条真实任务与验收口径，再接模型。",
+   "derived_from": "L1/pits/2"
   }
  ],
  "skipped": []

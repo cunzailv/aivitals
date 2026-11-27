@@ -1,0 +1,23 @@
+# 语料与规则的许可（LICENSE-CORPUS）
+
+本仓库中的**体系数据与规则**（下列路径）采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode)：
+
+- `aivitals/data/architecture.json`（17 层体系：层名、职责、组件、决策、死法、验收清单、参考项目）
+- `aivitals/data/checks/*.yaml`（规则定义）
+- `aivitals/data/claims/*.yaml`（声明校验谓词）
+- `docs/` 下的说明文字
+
+你可以复制、改编、商用，只需保留署名与许可声明：
+
+> AIVitals architecture corpus, CC BY 4.0, https://github.com/cunzailv/aivitals
+
+**代码**（`aivitals/*.py`、`tests/`、脚本）仍为 Apache-2.0，见 `LICENSE`。
+
+## 为什么分开
+
+代码要能被公司安全地集成（Apache-2.0 带专利授权），而体系与规则希望被更多人引用、改写、翻译，所以用更宽松的 CC BY 4.0。
+
+## 不包含
+
+- 用户私有资料与私有报告（`corpus/sources/` 已在 `.gitignore` 中排除）
+- 第三方项目的原始代码（`fixtures/` 只含为评测自写的最小样例）

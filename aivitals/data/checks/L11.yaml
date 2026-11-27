@@ -1,0 +1,30 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L11-P2-015
+  layer: 11
+  group: B
+  title: 多 Agent 协作没有统一 trace
+  severity: P2
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_count
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: handoff|sub_agent|subagent|agent_registry
+      min: 2
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: trace_id|correlation_id|span|opentelemetry
+  fix: 一次任务用同一个 trace_id 串起所有 handoff。
+  impact: 多 Agent 交接后排障只能靠猜。
+  derived_from: L11/pits/2
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

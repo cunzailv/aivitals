@@ -18,13 +18,16 @@ def _ev_text(e: Evidence) -> str:
 
 
 def summary(r: AuditResult) -> dict[str, Any]:
-    p0, p1 = len(r.p0), len(r.p1)
+    allf = list(r.findings) + list(r.suppressed)
+    p0 = sum(1 for f in allf if f.severity == "P0")
+    p1 = sum(1 for f in allf if f.severity == "P1")
     checked = [l for l in r.layers if l.status != "unchecked"]
     return {
         "p0": p0,
         "p1": p1,
-        "p2": sum(1 for f in r.findings if f.severity == "P2"),
-        "p3": sum(1 for f in r.findings if f.severity == "P3"),
+        "p2": sum(1 for f in allf if f.severity == "P2"),
+        "p3": sum(1 for f in allf if f.severity == "P3"),
+        "baseline_suppressed": len(r.suppressed),
         "layers_checked": len(checked),
         "layers_total": 17,
         "coverage": round(len(checked) / 17, 2),
@@ -111,6 +114,9 @@ def to_markdown(r: AuditResult, max_p1: int = 10, per_layer: int = 3) -> str:
         "> 架构体征不等于安全审计；claim 结论仅表示「未找到证据」或「与实现矛盾」。",
         "",
     ]
+    if r.suppressed:
+        lines.insert(len(lines) - 1,
+            f"> 基线已抑制 {len(r.suppressed)} 条既有问题（不计入下方新增列表，但仍计入总分）。")
     unchecked = [l for l in r.layers if l.status == "unchecked"]
     gate_skips = [x for x in r.skipped if "档位" in x["reason"]]
     locs = []

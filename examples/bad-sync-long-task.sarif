@@ -10,6 +10,29 @@
      "informationUri": "https://github.com/cunzailv/aivitals",
      "rules": [
       {
+       "id": "L01-P3-013",
+       "name": "没有定义「什么叫做完」",
+       "shortDescription": {
+        "text": "没有定义「什么叫做完」"
+       },
+       "fullDescription": {
+        "text": "没有验收定义，换模型后全线退化也没人知道。"
+       },
+       "help": {
+        "text": "写清 20-50 条真实任务与验收口径，再接模型。",
+        "markdown": "写清 20-50 条真实任务与验收口径，再接模型。"
+       },
+       "properties": {
+        "severity": "P3",
+        "layer": 1,
+        "kind": "missing_capability",
+        "tags": [
+         "ai-architecture",
+         "L1"
+        ]
+       }
+      },
+      {
        "id": "L02-P0-001",
        "name": "同步接口里跑长任务",
        "shortDescription": {
@@ -49,6 +72,29 @@
         "severity": "P0",
         "layer": 3,
         "kind": "risky_default",
+        "tags": [
+         "ai-architecture",
+         "L3"
+        ]
+       }
+      },
+      {
+       "id": "L03-P1-014",
+       "name": "没有配额与预算上限",
+       "shortDescription": {
+        "text": "没有配额与预算上限"
+       },
+       "fullDescription": {
+        "text": "一个死循环或一次刷接口，账单当场失控。"
+       },
+       "help": {
+        "text": "每租户/每任务设 token 与调用次数上限。",
+        "markdown": "每租户/每任务设 token 与调用次数上限。"
+       },
+       "properties": {
+        "severity": "P1",
+        "layer": 3,
+        "kind": "missing_capability",
         "tags": [
          "ai-architecture",
          "L3"
@@ -492,6 +538,59 @@
      ]
     },
     {
+     "ruleId": "L03-P1-014",
+     "level": "warning",
+     "message": {
+      "text": "没有配额与预算上限｜一个死循环或一次刷接口，账单当场失控。"
+     },
+     "properties": {
+      "severity": "P1",
+      "confidence": "high",
+      "layer": 3
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 3,
+         "snippet": {
+          "text": "c1 = OpenAI()"
+         }
+        }
+       }
+      },
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 4,
+         "snippet": {
+          "text": "c2 = Anthropic()"
+         }
+        }
+       }
+      },
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 5,
+         "snippet": {
+          "text": "c3 = ChatOpenAI()"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
      "ruleId": "L04-P1-003",
      "level": "warning",
      "message": {
@@ -657,6 +756,33 @@
          "startLine": 5,
          "snippet": {
           "text": "c3 = ChatOpenAI()"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L01-P3-013",
+     "level": "note",
+     "message": {
+      "text": "没有定义「什么叫做完」｜没有验收定义，换模型后全线退化也没人知道。"
+     },
+     "properties": {
+      "severity": "P3",
+      "confidence": "high",
+      "layer": 1
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "app.py"
+        },
+        "region": {
+         "startLine": 3,
+         "snippet": {
+          "text": "from langchain_openai import ChatOpenAI"
          }
         }
        }

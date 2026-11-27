@@ -1,0 +1,63 @@
+name: aivitals
+
+description: 给 AI 项目做架构体检：17 层缺层检查、易出 bug 的架构模式、README 宣称与代码对正，输出带证据的分级报告。
+
+branding:
+  icon: activity
+  color: purple
+
+inputs:
+  path:
+    description: 要检查的目录，默认整个仓库
+    required: false
+    default: "."
+  fail-on:
+    description: 达到该级别就让 action 失败（P0 / P1 / P2 / P3，留空不失败）
+    required: false
+    default: "P0"
+  format:
+    description: 输出格式，逗号分隔（md,json,sarif,html）
+    required: false
+    default: "md,json,sarif"
+  out:
+    description: 报告输出目录
+    required: false
+    default: "aivitals-report"
+
+outputs:
+  report:
+    description: markdown 报告路径
+    value: ${{ steps.scan.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install aivitals
+      shell: bash
+      run: pip install --quiet "${{ github.action_path }}"
+    - name: Scan
+      id: scan
+      shell: bash
+      run: |
+        aivitals scan "${{ inputs.path }}" \
+          --format "${{ inputs.format }}" \
+          --out "${{ inputs.out }}" \
+          ${{ inputs.fail-on && format('--fail-on {0}', inputs.fail-on) || '' }}
+        echo "report=${{ inputs.out }}/report.md" >> "$GITHUB_OUTPUT"
+    - name: Job summary
+      if: always()
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.out }}/report.md" ]; then
+          cat "${{ inputs.out }}/report.md" >> "$GITHUB_STEP_SUMMARY"
+        fi
+    - name: Upload report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: aivitals-report
+        path: ${{ inputs.out }}
