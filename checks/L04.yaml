@@ -1,0 +1,31 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L04-P1-003
+  layer: 4
+  group: B
+  title: 业务直连厂商 SDK
+  severity: P1
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_count
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: OpenAI\(|Anthropic\(|openai\.chat|anthropic\.messages|ChatOpenAI\(
+      min: 3
+    - type: file_absent
+      globs:
+      - '**/gateway/**'
+      - '**/llm/**'
+      - '**/providers/**'
+      - '**/model_router/**'
+  fix: 抽一层模型网关：统一鉴权、路由、fallback、重试、计量；业务只依赖网关接口。
+  impact: 换模型要改几十处，错误码还不一样。
+  derived_from: L4/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

@@ -1,0 +1,31 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L05-P0-004
+  layer: 5
+  group: B
+  title: 状态放进程内存
+  severity: P0
+  kind: defect
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: _sessions\s*=\s*\{\}|_state\s*=\s*\{\}|global\s+\w*sessions|MemorySaver\(|in_memory
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      - '**/docker-compose.yml'
+      pattern: redis|postgres|sqlite|checkpoint|pickle\.dump|s3|object_storage
+  fix: 任务状态落到外部存储（redis / pg / checkpoint），进程可重启、可迁移。
+  impact: 一次发布或 OOM，跑到一半的任务全部消失。
+  derived_from: L5/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

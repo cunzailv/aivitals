@@ -1,0 +1,31 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L10-P0-009
+  layer: 10
+  group: B
+  title: 在应用容器跑生成代码
+  severity: P0
+  kind: defect
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: exec\(\s*(request|user|input|payload|message|code)|eval\(\s*(request|user|input|payload)
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      - '**/*.yml'
+      pattern: docker|firecracker|gvisor|microvm|sandbox|isolat
+  fix: 生成代码进独立沙箱（microVM / gVisor / 一次性容器），不与应用共享内核。
+  impact: 共享内核，一次逃逸就是主机沦陷。
+  derived_from: L10/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

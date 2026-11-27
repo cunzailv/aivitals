@@ -1,0 +1,130 @@
+# 领域谓词包：GEO 平台
+# 来源：桌面 /思阳geo/04_GEO全链路系统架构报告_20261126.md §20 验收清单
+# 编译日期：2026-11-27
+# 许可：CC-BY-4.0
+#
+# 说明：这份验收清单里混着两类判据，必须拆开放。
+#   - 标 scope: core 的 5 条 → 提升到 claims/predicates.yaml，适用所有 AI 项目
+#   - 标 scope: domain/geo 的 3 条 → 只对 GEO 类平台生效，放进本包
+# 混着放的后果：通用项目被按 GEO 标准判红，或者 GEO 项目被通用标准漏判。
+
+meta:
+  pack: geo
+  source_ref: "思阳geo/04_GEO全链路系统架构报告_20261126.md#§20-验收清单"
+  source_sha256_note: "原文不改写，只引用章节锚点"
+  as_of: 2026-11-27
+  review_by: 2027-02-27
+
+predicates:
+
+  - id: GE-01
+    name: tenant_isolation
+    scope: core
+    claim_patterns: ["多租户", "租户隔离", "数据隔离", "每个客户独立"]
+    acceptance_ref: "§20.2 · 多租户数据强隔离"
+    probes:
+      - {kind: symbol, ask: "核心表/模型是否带 tenant_id", expect: "租户字段在持久层出现"}
+      - {kind: query,  ask: "查询构造处是否强制租户过滤", expect: "数据访问层有统一注入，而非逐个 handler 手写"}
+      - {kind: storage, ask: "对象存储与向量库是否按租户分区", expect: "路径前缀或命名空间隔离"}
+    verdict_rules:
+      confirmed: "3/3 命中"
+      partial: "1-2 命中"
+      contradicted: "≥2 条反向证据（如 tenant_id 硬编码常量、查询无过滤）"
+      unsupported: "仓库中无持久层代码可查"
+
+  - id: GE-02
+    name: idempotent_write
+    scope: core
+    claim_patterns: ["幂等", "重试不重复", "不会重复扣费", "不会重复下单"]
+    acceptance_ref: "§20.2 · 写操作支持幂等"
+    probes:
+      - {kind: symbol, ask: "写接口是否接收 client_request_id / idempotency_key", expect: "键在请求层落库"}
+      - {kind: storage, ask: "是否有唯一约束或幂等表", expect: "重复请求返回首次结果"}
+    verdict_rules:
+      confirmed: "键 + 去重落库都在"
+      partial: "只有键，无去重存储"
+      contradicted: "重试路径直接重复执行写操作"
+
+  - id: GE-03
+    name: schema_validation
+    scope: core
+    claim_patterns: ["Schema 校验", "结构化输出", "类型安全"]
+    acceptance_ref: "§20.2 · API 有 Schema 校验"
+    probes:
+      - {kind: symbol, ask: "LLM 输出/API 入参是否经过 schema 校验", expect: "pydantic/zod/jsonschema 出现在边界"}
+      - {kind: pattern, ask: "是否存在裸 json.loads 后直接取字段", expect: "无校验即使用视为未命中"}
+    verdict_rules:
+      confirmed: "边界处有校验且失败有兜底"
+      partial: "只有入参校验，无模型输出校验"
+      contradicted: "明确使用 eval/裸解析处理模型输出"
+
+  - id: GE-04
+    name: audit_log
+    scope: core
+    claim_patterns: ["审计", "操作留痕", "可追溯操作"]
+    acceptance_ref: "§20.2 · 关键操作有审计日志"
+    probes:
+      - {kind: symbol, ask: "写操作是否记录 actor/action/target/time", expect: "审计写入与业务写入同事务或可补偿"}
+      - {kind: pattern, ask: "是否只有 print/console 日志", expect: "无结构化审计字段视为未命中"}
+    verdict_rules:
+      confirmed: "结构化审计 + 租户维度"
+      partial: "有日志但无 actor/target"
+      contradicted: "无任何写操作留痕"
+
+  - id: GE-05
+    name: cost_accounting
+    scope: core
+    claim_patterns: ["成本记录", "成本归属", "token 计量", "按租户计费"]
+    acceptance_ref: "§20.2 · LLM 调用有成本记录"
+    probes:
+      - {kind: symbol, ask: "模型调用是否记录 tokens/费用/模型名", expect: "调用封装处统一埋点"}
+      - {kind: storage, ask: "是否有 usage 表且带租户维度", expect: "可按租户/任务聚合"}
+    verdict_rules:
+      confirmed: "埋点 + 归属维度都有"
+      partial: "只有总账单，无租户/任务维度"
+      contradicted: "无任何 token 或费用记录"
+
+  - id: GE-06
+    name: sample_traceability
+    scope: domain/geo
+    claim_patterns: ["样本可追溯", "保存回答全文", "可回溯原始回答"]
+    acceptance_ref: "§20.2 · 样本可追溯到原始回答"
+    probes:
+      - {kind: storage, ask: "采样结果是否保存回答全文、引擎、时间、引用源", expect: "字段齐全且有原始快照"}
+      - {kind: symbol, ask: "指标计算是否能回溯到 sample_id", expect: "聚合层保留样本 ID 链路"}
+    verdict_rules:
+      confirmed: "样本原文字段齐全且指标可回溯"
+      partial: "只存摘要，原文另存不确定"
+      contradicted: "指标直接由在线调用结果计算，无落库"
+
+  - id: GE-07
+    name: sampling_reproducibility
+    scope: domain/geo
+    claim_patterns: ["可复测", "复测", "多引擎采样", "按引擎/区域/语言采样"]
+    acceptance_ref: "§20.1 · 支持至少两类 AI 引擎采样 / §20.1 支持复测并展示趋势变化"
+    probes:
+      - {kind: config, ask: "引擎、区域、语言、模型版本是否可配置", expect: "采样任务参数化，非硬编码"}
+      - {kind: storage, ask: "是否记录模型版本与采样时间", expect: "复测能对齐同一组 Prompt"}
+    verdict_rules:
+      confirmed: "参数化 + 版本/时间留痕"
+      partial: "只支持单引擎或参数硬编码"
+      contradicted: "无复测能力，或复测使用不同 Prompt 集"
+
+  - id: GE-08
+    name: badcase_reflow
+    scope: domain/geo
+    claim_patterns: ["Bad Case", "回流", "人工抽检", "事实库回流"]
+    acceptance_ref: "§20.3 · Bad Case 可回流到事实库或问题库"
+    probes:
+      - {kind: symbol, ask: "是否存在 bad case 标记并写入事实库/问题库的路径", expect: "有显式 case 表与回流接口"}
+      - {kind: process, ask: "是否有人工抽检流程", expect: "抽检记录可查"}
+    verdict_rules:
+      confirmed: "标记 + 回流 + 抽检三者都在"
+      partial: "只有标记，无回流路径"
+      unsupported: "文档有承诺但仓库无对应实现"
+
+# 编译日志（给人看的，不参与判定）
+compile_log:
+  - "原文 20.2 技术验收 10 条 → 抽成 5 条通用谓词（GE-01..GE-05）"
+  - "原文 20.1/20.3 中 GEO 专属能力 → 抽成 3 条领域谓词（GE-06..GE-08）"
+  - "未抽的验收项（如'指标口径可解释'）属于人工判断，暂不进谓词库，避免假阳性"

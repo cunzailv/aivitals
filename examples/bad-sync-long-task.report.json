@@ -1,0 +1,418 @@
+{
+ "schema_version": "0.1",
+ "tool": {
+  "name": "aivitals",
+  "version": "0.1.0"
+ },
+ "generated_at": "2026-11-27T21:44:18+08:00",
+ "disclaimer": "架构体征不等于安全审计，不能替代渗透测试；claim 结论仅表示未找到证据或与实现矛盾。",
+ "summary": {
+  "p0": 7,
+  "p1": 5,
+  "p2": 0,
+  "p3": 0,
+  "layers_checked": 12,
+  "layers_total": 17,
+  "coverage": 0.71,
+  "covered_languages": [
+   "python"
+  ],
+  "uncovered_languages": [],
+  "overall": "critical_gaps",
+  "exit_level": 2
+ },
+ "profile": {
+  "root": "fixtures/bad-sync-long-task",
+  "repo_type": "ai_native_app",
+  "maturity": "production",
+  "languages": {
+   "python": 7
+  },
+  "file_count": 10,
+  "loc": 37,
+  "ai_signals": [
+   "anthropic",
+   "langchain",
+   "openai"
+  ],
+  "deps": [],
+  "entrypoints": [
+   "app.py"
+  ],
+  "deployment": [
+   "Dockerfile"
+  ],
+  "has_tests": false,
+  "has_ci": true,
+  "covered_languages": [
+   "python"
+  ],
+  "uncovered_languages": [],
+  "notes": []
+ },
+ "layers": [
+  {
+   "layer": 1,
+   "name": "产品与场景层",
+   "status": "unchecked",
+   "findings": 0
+  },
+  {
+   "layer": 2,
+   "name": "接入与交付层",
+   "status": "weak",
+   "findings": 1
+  },
+  {
+   "layer": 3,
+   "name": "身份、租户与配额层",
+   "status": "weak",
+   "findings": 1
+  },
+  {
+   "layer": 4,
+   "name": "模型接入与网关层",
+   "status": "partial",
+   "findings": 1
+  },
+  {
+   "layer": 5,
+   "name": "编排与运行时层",
+   "status": "weak",
+   "findings": 1
+  },
+  {
+   "layer": 6,
+   "name": "上下文工程层",
+   "status": "partial",
+   "findings": 1
+  },
+  {
+   "layer": 7,
+   "name": "知识与检索层",
+   "status": "weak",
+   "findings": 1
+  },
+  {
+   "layer": 8,
+   "name": "记忆层",
+   "status": "partial",
+   "findings": 1
+  },
+  {
+   "layer": 9,
+   "name": "工具与协议层",
+   "status": "weak",
+   "findings": 1
+  },
+  {
+   "layer": 10,
+   "name": "执行与沙箱层",
+   "status": "weak",
+   "findings": 1
+  },
+  {
+   "layer": 11,
+   "name": "多智能体协作层",
+   "status": "unchecked",
+   "findings": 0
+  },
+  {
+   "layer": 12,
+   "name": "评测与优化层",
+   "status": "partial",
+   "findings": 1
+  },
+  {
+   "layer": 13,
+   "name": "可观测与运维层",
+   "status": "unchecked",
+   "findings": 0
+  },
+  {
+   "layer": 14,
+   "name": "安全与合规层",
+   "status": "weak",
+   "findings": 1
+  },
+  {
+   "layer": 15,
+   "name": "平台控制面",
+   "status": "unchecked",
+   "findings": 0
+  },
+  {
+   "layer": 16,
+   "name": "基础设施与推理层",
+   "status": "unchecked",
+   "findings": 0
+  },
+  {
+   "layer": 17,
+   "name": "成本与商业化层",
+   "status": "partial",
+   "findings": 1
+  }
+ ],
+ "findings": [
+  {
+   "check_id": "L02-P0-001",
+   "layer": 2,
+   "group": "A",
+   "title": "同步接口里跑长任务",
+   "severity": "P0",
+   "kind": "defect",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "app.py",
+     "line": 16,
+     "snippet": "result = await chain.ainvoke({\"input\": payload[\"q\"]})"
+    }
+   ],
+   "impact": "网关先超时，用户以为卡死，后台还在烧 token。",
+   "fix": "超过 30 秒的链路一律异步化：入队 → 立刻返回 task_id → 前端订阅进度。",
+   "derived_from": "L2/pits/1"
+  },
+  {
+   "check_id": "L03-P0-002",
+   "layer": 3,
+   "group": "A",
+   "title": "全平台共用一个模型 key",
+   "severity": "P0",
+   "kind": "risky_default",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "app.py",
+     "line": 9,
+     "snippet": "OPENAI_API_KEY = os.environ[\"OPENAI_API_KEY\"]"
+    },
+    {
+     "file": "app.py",
+     "line": 10,
+     "snippet": "llm = ChatOpenAI(api_key=OPENAI_API_KEY)"
+    }
+   ],
+   "impact": "泄露一次等于全损，且无法定位是谁烧的。",
+   "fix": "key 按租户或按用途拆分，最小权限 + 定期轮换，泄露只影响一个租户。",
+   "derived_from": "L3/pits/1"
+  },
+  {
+   "check_id": "L05-P0-004",
+   "layer": 5,
+   "group": "B",
+   "title": "状态放进程内存",
+   "severity": "P0",
+   "kind": "defect",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "app.py",
+     "line": 8,
+     "snippet": "_sessions = {}"
+    }
+   ],
+   "impact": "一次发布或 OOM，跑到一半的任务全部消失。",
+   "fix": "任务状态落到外部存储（redis / pg / checkpoint），进程可重启、可迁移。",
+   "derived_from": "L5/pits/1"
+  },
+  {
+   "check_id": "L07-P0-006",
+   "layer": 7,
+   "group": "B",
+   "title": "检索没有权限过滤",
+   "severity": "P0",
+   "kind": "defect",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "rag.py",
+     "line": 2,
+     "snippet": "return vectorstore.similarity_search(query_embedding, k=5)"
+    }
+   ],
+   "impact": "A 租户的文档被 B 租户检索到，一次就够上新闻。",
+   "fix": "检索前强制加租户/ACL 过滤，写在数据访问层，不靠每个调用点自觉。",
+   "derived_from": "L7/pits/1"
+  },
+  {
+   "check_id": "L09-P0-008",
+   "layer": 9,
+   "group": "B",
+   "title": "造一个万能工具",
+   "severity": "P0",
+   "kind": "defect",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "tools.py",
+     "line": 1,
+     "snippet": "def run_shell(cmd: str):"
+    }
+   ],
+   "impact": "shell + SQL + 发邮件打包给 Agent，等于给它 root。",
+   "fix": "工具按动作拆细，参数白名单 + 审批 + 沙箱；不要给 Agent 一个能碰全系统的入口。",
+   "derived_from": "L9/pits/1"
+  },
+  {
+   "check_id": "L10-P0-009",
+   "layer": 10,
+   "group": "B",
+   "title": "在应用容器跑生成代码",
+   "severity": "P0",
+   "kind": "defect",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "app.py",
+     "line": 23,
+     "snippet": "return {\"out\": exec(payload[\"code\"])}"
+    }
+   ],
+   "impact": "共享内核，一次逃逸就是主机沦陷。",
+   "fix": "生成代码进独立沙箱（microVM / gVisor / 一次性容器），不与应用共享内核。",
+   "derived_from": "L10/pits/1"
+  },
+  {
+   "check_id": "L14-P0-011",
+   "layer": 14,
+   "group": "C",
+   "title": "把 prompt 当权限",
+   "severity": "P0",
+   "kind": "defect",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "prompt.py",
+     "line": 1,
+     "snippet": "SYSTEM = \"你是助手。不要执行删除操作，禁止访问用户隐私数据。\""
+    }
+   ],
+   "impact": "system prompt 写「不要做 X」，实际没有任何机制拦住 X。",
+   "fix": "权限写在代码里：工具白名单、参数校验、危险动作人审；prompt 只能表达意图，不能当门禁。",
+   "derived_from": "L14/pits/1"
+  },
+  {
+   "check_id": "L04-P1-003",
+   "layer": 4,
+   "group": "B",
+   "title": "业务直连厂商 SDK",
+   "severity": "P1",
+   "kind": "risky_default",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "llm_extra.py",
+     "line": 3,
+     "snippet": "c1 = OpenAI()"
+    },
+    {
+     "file": "llm_extra.py",
+     "line": 4,
+     "snippet": "c2 = Anthropic()"
+    },
+    {
+     "file": "llm_extra.py",
+     "line": 5,
+     "snippet": "c3 = ChatOpenAI()"
+    },
+    {
+     "file": "<repo>",
+     "line": 0,
+     "snippet": "未找到 ['**/gateway/**', '**/llm/**', '**/providers/**', '**/model_router/**']"
+    }
+   ],
+   "impact": "换模型要改几十处，错误码还不一样。",
+   "fix": "抽一层模型网关：统一鉴权、路由、fallback、重试、计量；业务只依赖网关接口。",
+   "derived_from": "L4/pits/1"
+  },
+  {
+   "check_id": "L06-P1-005",
+   "layer": 6,
+   "group": "B",
+   "title": "全量上下文硬塞",
+   "severity": "P1",
+   "kind": "risky_default",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "context.py",
+     "line": 1,
+     "snippet": "system_prompt = base_prompt + \"\\n\".join(history)"
+    }
+   ],
+   "impact": "工具 schema 全注入、文档全塞进 prompt，模型选错还被怪「不行」。",
+   "fix": "上下文按额度分配：system / 记忆 / 检索 / 工具 schema 各有预算，超了就压缩或拆子 Agent。",
+   "derived_from": "L6/pits/1"
+  },
+  {
+   "check_id": "L08-P1-007",
+   "layer": 8,
+   "group": "B",
+   "title": "记忆全量塞进向量库",
+   "severity": "P1",
+   "kind": "risky_default",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "memory.py",
+     "line": 2,
+     "snippet": "store.add_documents(docs)"
+    }
+   ],
+   "impact": "检索回来全是噪声，还不如不记。",
+   "fix": "记忆分层：原文冷存、笔记提炼、结构化沉淀，按 TTL 淘汰，定期去重。",
+   "derived_from": "L8/pits/1"
+  },
+  {
+   "check_id": "L12-P1-010",
+   "layer": 12,
+   "group": "C",
+   "title": "没有评测就上线",
+   "severity": "P1",
+   "kind": "missing_capability",
+   "confidence": "medium",
+   "evidence": [
+    {
+     "file": "<repo>",
+     "line": 0,
+     "snippet": "未找到 ['**/evals/**', '**/eval/**', '**/golden/**', '**/badcases/**', '**/*eval*.py', '**/*.eval.ts']"
+    }
+   ],
+   "impact": "「感觉还行」是唯一验收标准，换个模型后全线退化却没人知道。",
+   "fix": "先攒 20-50 条真实任务做回归集，接进 CI；每次改 prompt/模型都跑一遍。",
+   "derived_from": "L12/pits/1"
+  },
+  {
+   "check_id": "L17-P1-012",
+   "layer": 17,
+   "group": "D",
+   "title": "成本不做归属",
+   "severity": "P1",
+   "kind": "risky_default",
+   "confidence": "high",
+   "evidence": [
+    {
+     "file": "llm_extra.py",
+     "line": 3,
+     "snippet": "c1 = OpenAI()"
+    },
+    {
+     "file": "llm_extra.py",
+     "line": 4,
+     "snippet": "c2 = Anthropic()"
+    },
+    {
+     "file": "llm_extra.py",
+     "line": 5,
+     "snippet": "c3 = ChatOpenAI()"
+    }
+   ],
+   "impact": "只知道总账单，不知道哪个租户在亏钱，越用越亏。",
+   "fix": "每次模型调用统一埋点：tokens、模型、任务、租户，落到 usage 表，可按租户聚合与限额。",
+   "derived_from": "L17/pits/1"
+  }
+ ],
+ "skipped": []
+}

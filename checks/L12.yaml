@@ -1,0 +1,34 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L12-P1-010
+  layer: 12
+  group: C
+  title: 没有评测就上线
+  severity: P1
+  kind: missing_capability
+  detect:
+    all_of:
+    - type: file_absent
+      globs:
+      - '**/evals/**'
+      - '**/eval/**'
+      - '**/golden/**'
+      - '**/badcases/**'
+      - '**/*eval*.py'
+      - '**/*.eval.ts'
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      - '**/*.toml'
+      - '**/*.yml'
+      pattern: deepeval|ragas|promptfoo|langfuse|langsmith
+  fix: 先攒 20-50 条真实任务做回归集，接进 CI；每次改 prompt/模型都跑一遍。
+  impact: 「感觉还行」是唯一验收标准，换个模型后全线退化却没人知道。
+  derived_from: L12/pits/1
+  maturity_gate: production
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

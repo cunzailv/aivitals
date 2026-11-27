@@ -1,0 +1,1975 @@
+{
+ "LAYERS": [
+  {
+   "id": 1,
+   "g": "A",
+   "name": "产品与场景层",
+   "en": "Product & Use Case",
+   "cover": "off",
+   "role": "先决定「这件事该不该用 Agent」，再谈技术。",
+   "comps": [
+    "任务边界",
+    "成功标准",
+    "Agent / Workflow 判定",
+    "人在回路位置",
+    "失败兜底",
+    "价值与 ROI"
+   ],
+   "decisions": [
+    "能做确定性 Workflow 就不要上自主 Agent：路径固定的用状态图，路径不可预判的才用循环 + 规划。",
+    "先写 20–50 条真实任务的评测集，再写第一行代码。没有「任务完成长什么样」的 Agent 项目，最后一定靠感觉验收。",
+    "把人审位置设计成产品的一部分（草稿态、确认按钮、审批流），而不是出事后的补丁。"
+   ],
+   "pits": [
+    "为 Agent 而 Agent：把三步固定流程包装成「自主智能体」，成本翻三倍、可解释性归零。",
+    "只定义了「能聊天」，没定义「什么叫做完」。"
+   ],
+   "check": "这个任务，一个实习生照 SOP 能不能做？能，就别用 Agent。",
+   "projects": []
+  },
+  {
+   "id": 2,
+   "g": "A",
+   "name": "接入与交付层",
+   "en": "Edge & Delivery",
+   "cover": "off",
+   "role": "把「几十秒到几小时」的智能任务，变成用户能感知的产品体验。",
+   "comps": [
+    "BFF / API 网关",
+    "SSE / WebSocket 流式",
+    "异步任务 202+task_id",
+    "断线重连与续传",
+    "多端 SDK",
+    "文件上传",
+    "幂等键",
+    "限流"
+   ],
+   "decisions": [
+    "超过 30 秒的任务一律异步化：立刻返回 task_id，前端订阅进度，不要占着一条 HTTP 连接等模型。",
+    "流式必须能从中途恢复：保存已产出的 token 偏移，断线后从 offset 续传，而不是整段重来。",
+    "所有有副作用的调用带 client_request_id，保证重试不会重复扣费、重复发邮件、重复下单。"
+   ],
+   "pits": [
+    "同步接口里跑 3 分钟的 Agent，网关先超时，用户以为卡死，实际后台还在烧钱。",
+    "前端只做了「打字机效果」，没做任务状态机，关掉页面任务就消失。"
+   ],
+   "check": "用户关掉页面 5 分钟再回来，那个任务还在跑、还能看到结果吗？",
+   "projects": [
+    {
+     "n": "FastAPI",
+     "u": "https://github.com/fastapi/fastapi",
+     "d": "Python 侧 API / SSE 主力"
+    },
+    {
+     "n": "Hono",
+     "u": "https://github.com/honojs/hono",
+     "d": "边缘运行时轻量 API"
+    },
+    {
+     "n": "Vercel AI SDK",
+     "u": "https://github.com/vercel/ai",
+     "d": "前端流式协议与多模型适配"
+    },
+    {
+     "n": "tRPC",
+     "u": "https://github.com/trpc/trpc",
+     "d": "端到端类型安全调用"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "g": "A",
+   "name": "身份、租户与配额层",
+   "en": "Identity & Tenancy",
+   "cover": "off",
+   "role": "谁能用、能用多少、花的是谁的钱。",
+   "comps": [
+    "OIDC / SSO",
+    "租户命名空间隔离",
+    "RBAC / ABAC",
+    "Agent 独立身份",
+    "虚拟密钥",
+    "速率与并发限制",
+    "预算上限",
+    "审计主体"
+   ],
+   "decisions": [
+    "一个应用一个虚拟 key，绝不把厂商 master key 发给业务代码；key 要能单独吊销。",
+    "权限在运行时策略里强制（网关 / 策略引擎），不要写在 system prompt 里——prompt 是请求，策略才是控制。",
+    "tenant_id 必须贯穿日志、向量库 namespace、对象存储前缀、成本记录四条链路，缺一条就做不了隔离。"
+   ],
+   "pits": [
+    "全平台共用一个 OpenAI key，泄露一次等于全损，且无法定位是谁烧的。",
+    "多租户共用一个向量 collection，A 客户检索到 B 客户的私有文档。"
+   ],
+   "check": "把某个租户的 key 撤掉，影响范围是不是只有他？",
+   "projects": [
+    {
+     "n": "Keycloak",
+     "u": "https://github.com/keycloak/keycloak",
+     "d": "自托管 SSO / OIDC"
+    },
+    {
+     "n": "Clerk",
+     "u": "https://clerk.com",
+     "d": "托管身份与租户"
+    },
+    {
+     "n": "LiteLLM",
+     "u": "https://github.com/BerriAI/litellm",
+     "d": "虚拟 key / 团队 / 预算分层"
+    },
+    {
+     "n": "OPA",
+     "u": "https://github.com/open-policy-agent/opa",
+     "d": "运行时策略引擎"
+    },
+    {
+     "n": "SpiceDB",
+     "u": "https://github.com/authzed/spicedb",
+     "d": "细粒度授权关系图"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "g": "B",
+   "name": "模型接入与网关层",
+   "en": "Model Gateway",
+   "cover": "half",
+   "role": "把「很多家模型」收敛成一个稳定、可计量、可替换的内部接口。",
+   "comps": [
+    "统一协议（OpenAI 兼容）",
+    "别名 → 部署映射",
+    "成本/延迟/能力路由",
+    "重试",
+    "fallback",
+    "部署冷却",
+    "限流",
+    "prompt cache",
+    "语义缓存",
+    "token 计量",
+    "成本归属"
+   ],
+   "decisions": [
+    "业务只认别名（如 llm.reasoning / llm.fast），换供应商是改配置，不是改代码。这条决定了你未来三年的迁移成本。",
+    "至少两档模型 + 一个自托管兜底；fallback 要分三类：通用错误、内容策略拒绝、上下文超长，处理方式完全不同。",
+    "缓存前缀必须字节稳定：system prompt 里别放时间戳、用户名、随机 ID，否则命中率永远是 0。"
+   ],
+   "pits": [
+    "业务代码直连厂商 SDK，换模型要改几十处，还带着各家不同的错误码。",
+    "把动态内容混进缓存块，钱花了、cache 一次没命中。"
+   ],
+   "check": "主模型厂商今天宕机，你的产品能自动降级到备用且用户无感吗？",
+   "projects": [
+    {
+     "n": "LiteLLM",
+     "u": "https://github.com/BerriAI/litellm",
+     "d": "最主流的自托管 AI 网关：路由 / fallback / 虚拟 key / 花费追踪"
+    },
+    {
+     "n": "Portkey Gateway",
+     "u": "https://github.com/Portkey-AI/gateway",
+     "d": "开源网关，护栏与可观测集成强"
+    },
+    {
+     "n": "Higress",
+     "u": "https://github.com/alibaba/higress",
+     "d": "云原生 AI 网关，适合已有 K8s 体系"
+    },
+    {
+     "n": "OpenRouter",
+     "u": "https://openrouter.ai",
+     "d": "托管多模型聚合（快速验证期）"
+    },
+    {
+     "n": "vLLM",
+     "u": "https://github.com/vllm-project/vllm",
+     "d": "自托管推理主力"
+    },
+    {
+     "n": "SGLang",
+     "u": "https://github.com/sgl-project/sglang",
+     "d": "高吞吐推理运行时"
+    },
+    {
+     "n": "Bifrost",
+     "u": "https://github.com/maximhq/bifrost",
+     "d": "高性能网关，低延迟场景"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "g": "B",
+   "name": "编排与运行时层",
+   "en": "Orchestration & Runtime",
+   "cover": "half",
+   "role": "Agent 的「操作系统」：决定下一步做什么，并保证跑不完也能接着跑。",
+   "comps": [
+    "状态图 / 状态机",
+    "节点级重试",
+    "checkpoint",
+    "durable execution",
+    "HITL interrupt",
+    "并发 / fan-out",
+    "超时与取消",
+    "幂等",
+    "最大步数"
+   ],
+   "decisions": [
+    "编排状态必须可序列化、可重放，不能放在进程内存里。这是「上线后能重启」的前提。",
+    "超过 1 分钟的任务交给 durable runtime（Temporal / Inngest / Restate），不要自己写 while 循环加 sleep。",
+    "任何 Agent 都要有硬上限：max_steps、max_cost、max_wall_time。没有这三条，模型自我循环能烧掉几千块。"
+   ],
+   "pits": [
+    "Worker 重启，跑到第 40 步的任务全丢，用户看到的是「莫名其妙失败了」。",
+    "没有步数上限，两个 agent 互相 handoff 到天亮。"
+   ],
+   "check": "杀掉进程再重启，任务能从断点继续，而不是从头再来吗？",
+   "projects": [
+    {
+     "n": "LangGraph",
+     "u": "https://github.com/langchain-ai/langgraph",
+     "d": "状态图编排 + checkpointer + interrupt，当前主流"
+    },
+    {
+     "n": "Temporal",
+     "u": "https://github.com/temporalio/temporal",
+     "d": "durable execution，长任务 / 人审等待 / 崩溃恢复"
+    },
+    {
+     "n": "Inngest",
+     "u": "https://github.com/inngest/inngest",
+     "d": "事件驱动 durable 函数，接入轻"
+    },
+    {
+     "n": "Restate",
+     "u": "https://github.com/restatedev/restate",
+     "d": "轻量 durable 执行引擎"
+    },
+    {
+     "n": "OpenAI Agents SDK",
+     "u": "https://github.com/openai/openai-agents-python",
+     "d": "handoff / guardrail / session 原语"
+    },
+    {
+     "n": "Google ADK",
+     "u": "https://github.com/google/adk-python",
+     "d": "代码优先，直连 Vertex 部署"
+    },
+    {
+     "n": "Pydantic AI",
+     "u": "https://github.com/pydantic/pydantic-ai",
+     "d": "类型安全 + 结构化输出"
+    },
+    {
+     "n": "Mastra",
+     "u": "https://github.com/mastra-ai/mastra",
+     "d": "TypeScript 侧 agents + workflow + eval"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "g": "B",
+   "name": "上下文工程层",
+   "en": "Context Engineering",
+   "cover": "off",
+   "role": "决定「模型这一刻看到什么」。这是效果的第一性变量，比换模型重要。",
+   "comps": [
+    "system prompt 分层",
+    "动态工具注入",
+    "上下文预算分配",
+    "compaction 压缩",
+    "子 Agent 隔离",
+    "渐进式工具披露",
+    "prompt 版本与 A/B",
+    "缓存前缀工程"
+   ],
+   "decisions": [
+    "上下文是预算不是空间：给 system / 任务 / 检索 / 历史 / 工具分别设 token 配额，超配额就压缩或隔离，而不是硬塞。",
+    "工具超过 20–30 个必须分层披露或按场景裁剪。实测把工具池放大约 40 倍，单轮工具选择准确率从 97.6% 掉到 69.2%。",
+    "长任务用子 Agent 隔离：子 Agent 烧几万 token 去探索，只回传 1–2k token 的结论。父 Agent 付的是结论钱，不是探索钱。"
+   ],
+   "pits": [
+    "把整个知识库、全部工具 schema、全部历史对话一次性注入，然后怪模型「不听话」。",
+    "压缩（summarize）用错地方：把未经核实的错误事实压进摘要，反而把污染固化了。"
+   ],
+   "check": "你的 system prompt 里，有多少段落是模型其实从不参考的？",
+   "projects": [
+    {
+     "n": "DSPy",
+     "u": "https://github.com/stanfordnlp/dspy",
+     "d": "把 prompt 当可编译程序优化"
+    },
+    {
+     "n": "Langfuse",
+     "u": "https://github.com/langfuse/langfuse",
+     "d": "prompt 版本管理 + 实验"
+    },
+    {
+     "n": "Latitude",
+     "u": "https://github.com/latitude-dev/latitude",
+     "d": "prompt 工程与版本"
+    },
+    {
+     "n": "Anthropic Context Editing",
+     "u": "https://docs.anthropic.com",
+     "d": "上下文清理 / 压缩官方能力"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "g": "B",
+   "name": "知识与检索层",
+   "en": "Knowledge & RAG",
+   "cover": "off",
+   "role": "让模型答得「有据可查」，而不是靠记忆编。",
+   "comps": [
+    "文档解析（版式/表格/OCR）",
+    "清洗去重",
+    "结构分块",
+    "上下文增强",
+    "embedding",
+    "混合索引 BM25+向量+图",
+    "元数据与权限",
+    "query 改写",
+    "RRF 融合",
+    "cross-encoder rerank",
+    "引用约束",
+    "新鲜度"
+   ],
+   "decisions": [
+    "混合检索 + rerank 是 2026 的及格线。纯向量在专有名词、编号、缩写、精确短语上必输，BM25 在概念型提问上必输，两者融合再精排。",
+    "分块先用 300–500 token 的结构/递归分块，等 Context Precision 低于 0.8 再考虑语义分块。过早优化分块是最大的时间黑洞。",
+    "权限过滤发生在召回阶段，不是生成阶段。先生成再打码，等于把别人的数据喂进了模型。"
+   ],
+   "pits": [
+    "拿 PDF 直接按字符切，表格、标题层级、页码引用全丢，答出来无法溯源。",
+    "没有 rerank，top-5 里两条不相关还硬塞给模型，模型只能靠编来补。"
+   ],
+   "check": "你能说出上周召回率下降了多少、是哪次改动导致的吗？",
+   "projects": [
+    {
+     "n": "RAGFlow",
+     "u": "https://github.com/infiniflow/ragflow",
+     "d": "深度文档解析 + 混合检索，中文场景强"
+    },
+    {
+     "n": "LlamaIndex",
+     "u": "https://github.com/run-llama/llama_index",
+     "d": "RAG 全家桶与 Workflows"
+    },
+    {
+     "n": "Haystack",
+     "u": "https://github.com/deepset-ai/haystack",
+     "d": "生产级检索流水线，控制力强"
+    },
+    {
+     "n": "Docling",
+     "u": "https://github.com/docling-project/docling",
+     "d": "版式 / 表格解析"
+    },
+    {
+     "n": "MinerU",
+     "u": "https://github.com/opendatalab/MinerU",
+     "d": "PDF 转结构化，中文文档友好"
+    },
+    {
+     "n": "Unstructured",
+     "u": "https://github.com/Unstructured-IO/unstructured",
+     "d": "多格式抽取"
+    },
+    {
+     "n": "Qdrant",
+     "u": "https://github.com/qdrant/qdrant",
+     "d": "向量库，10M 以上向量的常用拐点"
+    },
+    {
+     "n": "Milvus",
+     "u": "https://github.com/milvus-io/milvus",
+     "d": "大规模向量检索"
+    },
+    {
+     "n": "pgvector",
+     "u": "https://github.com/pgvector/pgvector",
+     "d": "起步首选，省一个中间件"
+    },
+    {
+     "n": "OpenSearch",
+     "u": "https://github.com/opensearch-project/OpenSearch",
+     "d": "BM25 + 向量一体"
+    },
+    {
+     "n": "LightRAG",
+     "u": "https://github.com/HKUDS/LightRAG",
+     "d": "图增强检索，轻量实现"
+    },
+    {
+     "n": "Graphiti",
+     "u": "https://github.com/getzep/graphiti",
+     "d": "时序知识图谱"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "g": "B",
+   "name": "记忆层",
+   "en": "Memory",
+   "cover": "on",
+   "role": "让 Agent 跨会话记住「人、事、做法」，而不是每次从零开始。",
+   "comps": [
+    "工作记忆",
+    "情节记忆（带时间戳）",
+    "语义记忆（事实/偏好）",
+    "程序记忆（SOP/技能）",
+    "checkpoint",
+    "写路径：抽取→去重→冲突消解→失效",
+    "读路径：检索→排序→注入",
+    "TTL 与遗忘",
+    "命名空间",
+    "防投毒"
+   ],
+   "decisions": [
+    "记忆是独立基础设施，不是「更长的上下文」。上下文窗口再大，也解决不了跨会话和跨设备。",
+    "写入必须处理冲突：用户从「住杭州」改成「住上海」，要失效旧值，不是并存两条。这正是大多数「金鱼记忆」的来源。",
+    "按 user / session / agent 三级命名空间隔离，并把记忆类型分开存——它们的查询形状完全不同（时间范围 / 向量近邻 / 多跳关系）。"
+   ],
+   "pits": [
+    "把所有历史对话原文塞进向量库，检索回来全是噪声，还不如不记。",
+    "记忆投毒：恶意内容被写进长期记忆，跨会话持续生效，且很难被发现。"
+   ],
+   "check": "用户换了个说法，Agent 是更新旧事实，还是并存两条互相矛盾的记忆？",
+   "projects": [
+    {
+     "n": "Mem0",
+     "u": "https://github.com/mem0ai/mem0",
+     "d": "抽取 + 冲突消解 + 三级作用域，接入最快"
+    },
+    {
+     "n": "Letta",
+     "u": "https://github.com/letta-ai/letta",
+     "d": "MemGPT 路线，Agent 自己管理记忆分页"
+    },
+    {
+     "n": "Zep",
+     "u": "https://github.com/getzep/zep",
+     "d": "时序知识图谱记忆"
+    },
+    {
+     "n": "LangMem",
+     "u": "https://github.com/langchain-ai/langmem",
+     "d": "语义 / 情节 / 程序三类全覆盖"
+    },
+    {
+     "n": "Cognee",
+     "u": "https://github.com/topoteretes/cognee",
+     "d": "图 + 向量混合记忆"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "g": "B",
+   "name": "工具与协议层",
+   "en": "Tools & Protocols",
+   "cover": "on",
+   "role": "Agent 的手脚，也是最大的攻击面。",
+   "comps": [
+    "MCP（工具接入标准）",
+    "A2A（Agent 间协作）",
+    "OpenAPI 导入",
+    "工具 schema 治理",
+    "工具分级：读 / 写 / 危险",
+    "参数校验",
+    "超时与重试",
+    "幂等键",
+    "结果裁剪"
+   ],
+   "decisions": [
+    "工具用 MCP 暴露：一次接入，多处复用（Claude / Cursor / 自研 Agent 都能吃）。这是 2026 的工具事实标准。",
+    "读写工具必须分开命名、分别授权。「查订单」和「退款」不该是同一个工具的两种参数。",
+    "工具返回内容一律当不可信数据，绝不能当指令执行。网页、邮件、文档里的「忽略之前的指令」就是这条路进来的。"
+   ],
+   "pits": [
+    "把 shell / SQL / 发邮件打包成一个「万能工具」交给 Agent，等于给它 root。",
+    "工具数量无限膨胀，模型选错工具，最后归因到「模型不行」。"
+   ],
+   "check": "这个工具在最坏情况下，能造成什么不可逆后果？",
+   "projects": [
+    {
+     "n": "MCP Servers",
+     "u": "https://github.com/modelcontextprotocol/servers",
+     "d": "官方工具集，MCP 协议起点"
+    },
+    {
+     "n": "MCP Spec",
+     "u": "https://github.com/modelcontextprotocol/modelcontextprotocol",
+     "d": "协议规范"
+    },
+    {
+     "n": "A2A",
+     "u": "https://github.com/a2aproject/A2A",
+     "d": "Agent 间协作协议，与 MCP 互补"
+    },
+    {
+     "n": "Composio",
+     "u": "https://github.com/ComposioHQ/composio",
+     "d": "大量 SaaS 工具的即用接入"
+    },
+    {
+     "n": "Arcade",
+     "u": "https://github.com/ArcadeAI/arcade-ai",
+     "d": "带授权的工具调用框架"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "g": "B",
+   "name": "执行与沙箱层",
+   "en": "Execution & Sandbox",
+   "cover": "on",
+   "role": "让模型生成的代码和操作，在「炸不到主机」的地方跑。",
+   "comps": [
+    "microVM / 容器隔离",
+    "快照启动",
+    "pause / resume / fork",
+    "egress allowlist",
+    "secrets 按任务注入",
+    "CPU / 内存 / 时长限额",
+    "文件系统",
+    "浏览器 / 桌面",
+    "产出物回收"
+   ],
+   "decisions": [
+    "LLM 生成的代码绝不能在应用容器里跑。隔离等级按风险选：容器 < gVisor < Firecracker microVM。",
+    "网络默认拒绝，只放行白名单域名；凭证随任务下发、任务结束即失效，不要留长期 token 在环境变量里。",
+    "沙箱要能 pause / resume，否则「等用户确认」的几小时里你一直在为闲置算力付费。"
+   ],
+   "pits": [
+    "用 Docker 跑不可信代码：共享内核，一次逃逸就是主机沦陷。",
+    "沙箱给了无限制出网，数据被整包带走，日志里还看不出来。"
+   ],
+   "check": "让 Agent 执行 rm -rf /，你的宿主机还在吗？",
+   "projects": [
+    {
+     "n": "E2B",
+     "u": "https://github.com/e2b-dev/E2B",
+     "d": "Firecracker microVM 沙箱，Manus 等在用"
+    },
+    {
+     "n": "Firecracker",
+     "u": "https://github.com/firecracker-microvm/firecracker",
+     "d": "AWS 同款 microVM"
+    },
+    {
+     "n": "gVisor",
+     "u": "https://github.com/google/gvisor",
+     "d": "K8s 场景的系统调用拦截"
+    },
+    {
+     "n": "Daytona",
+     "u": "https://github.com/daytonaio/daytona",
+     "d": "Agent 运行环境管理"
+    },
+    {
+     "n": "Modal Sandboxes",
+     "u": "https://modal.com",
+     "d": "托管沙箱，弹性好"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "g": "B",
+   "name": "多智能体协作层",
+   "en": "Multi-Agent",
+   "cover": "off",
+   "role": "用分工换能力上限，代价是协调成本和不可调试性。",
+   "comps": [
+    "supervisor（默认）",
+    "pipeline",
+    "fan-out",
+    "swarm",
+    "debate",
+    "handoff 深度上限",
+    "共享状态 / 黑板",
+    "验收标准",
+    "预算分摊"
+   ],
+   "decisions": [
+    "默认用 supervisor：一个主控 + 少量专家。它是 2026 的生产默认，Claude Code 子 Agent、LangGraph Supervisor、OpenAI handoff 都收敛到这个形状。",
+    "swarm 只用于路径完全不可预判的开放探索，且必须限制 handoff 深度。超过 8 个 Agent 全互联，失败组合会超过测试能覆盖的范围。",
+    "多智能体的 token 成本常是单 Agent 的 10–15 倍。先算账，再决定要不要拆。"
+   ],
+   "pits": [
+    "8 个以上 Agent 互相 handoff，日志拼不出一次完整执行，排障靠猜。",
+    "每个 Agent 都能改全局状态，互相覆盖，最后谁写的事实都说不清。"
+   ],
+   "check": "一次失败，你能在 10 分钟内定位是哪个 Agent 的哪一步、为什么吗？",
+   "projects": [
+    {
+     "n": "LangGraph Supervisor",
+     "u": "https://github.com/langchain-ai/langgraph-supervisor-py",
+     "d": "主控 + 专家的标准实现"
+    },
+    {
+     "n": "CrewAI",
+     "u": "https://github.com/crewAIInc/crewAI",
+     "d": "角色化团队，快速搭"
+    },
+    {
+     "n": "AutoGen",
+     "u": "https://github.com/microsoft/autogen",
+     "d": "对话式多 Agent"
+    },
+    {
+     "n": "MetaGPT",
+     "u": "https://github.com/FoundationAgents/MetaGPT",
+     "d": "SOP 驱动的软件公司模拟"
+    },
+    {
+     "n": "AgentScope",
+     "u": "https://github.com/agentscope-ai/agentscope",
+     "d": "透明可观测的多 Agent"
+    },
+    {
+     "n": "OpenAI Agents SDK",
+     "u": "https://github.com/openai/openai-agents-python",
+     "d": "handoff 模型"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "g": "C",
+   "name": "评测与优化层",
+   "en": "Evaluation & Optimization",
+   "cover": "half",
+   "role": "把「感觉变好了」变成「可证伪的数字」。",
+   "comps": [
+    "组件级评测（检索命中/工具选择）",
+    "轨迹级评测（步数/序列/成本）",
+    "结果级评测（成功率/事实性/格式）",
+    "离线数据集",
+    "CI 门禁",
+    "在线采样",
+    "LLM-as-judge",
+    "人工标注队列",
+    "A/B",
+    "数据飞轮：失败样本 → 数据集 → SFT / LoRA / DPO"
+   ],
+   "decisions": [
+    "评测要分三层。只测最终答案，会漏掉「中间选错工具但结果碰巧对」——这种成功不可复现。",
+    "eval 进 CI：分数掉了就阻断发布。没有门禁的评测，两周后就没人看了。",
+    "生产失败样本自动回流成数据集条目，形成闭环。judge 只做粗筛和排序，关键结论用人工标注校准。"
+   ],
+   "pits": [
+    "89% 的团队接了可观测，只有 52% 接了评测。没有 eval 的 Agent，等于没有刹车的车。",
+    "用 LLM 当裁判，却从不校准裁判本身，最后在测「裁判的偏见」。"
+   ],
+   "check": "换个模型或改个 prompt，你能在 30 分钟内证明它变好还是变坏吗？",
+   "projects": [
+    {
+     "n": "Promptfoo",
+     "u": "https://github.com/promptfoo/promptfoo",
+     "d": "prompt / Agent 评测与红队，CI 友好"
+    },
+    {
+     "n": "Ragas",
+     "u": "https://github.com/explodinggradients/ragas",
+     "d": "RAG 专用指标：忠实度 / 上下文精度"
+    },
+    {
+     "n": "DeepEval",
+     "u": "https://github.com/confident-ai/deepeval",
+     "d": "单测式 LLM 评测"
+    },
+    {
+     "n": "Inspect AI",
+     "u": "https://github.com/UKGovernmentBEIS/inspect_ai",
+     "d": "严谨评测框架"
+    },
+    {
+     "n": "MLflow",
+     "u": "https://github.com/mlflow/mlflow",
+     "d": "实验追踪 + 评测"
+    },
+    {
+     "n": "Braintrust",
+     "u": "https://www.braintrust.dev",
+     "d": "trace → eval 闭环"
+    },
+    {
+     "n": "TRL",
+     "u": "https://github.com/huggingface/trl",
+     "d": "SFT / DPO / 偏好优化"
+    },
+    {
+     "n": "LLaMA-Factory",
+     "u": "https://github.com/hiyouga/LLaMA-Factory",
+     "d": "低成本 LoRA 微调"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "g": "C",
+   "name": "可观测与运维层",
+   "en": "Observability & Ops",
+   "cover": "off",
+   "role": "让「非确定性系统」的故障可复现、可归因。",
+   "comps": [
+    "OpenTelemetry GenAI 语义约定",
+    "trace / session / span",
+    "模型 / 工具 / 检索三类 span",
+    "token 与成本一等指标",
+    "工具调用审计",
+    "会话回放",
+    "告警",
+    "漂移检测",
+    "版本关联"
+   ],
+   "decisions": [
+    "一条请求一条 trace，模型调用、工具调用、检索各自成 span，能按用户 / 会话 / 租户 / 版本切片。",
+    "token 和延迟是核心指标，不是附属日志。高 token + 0 错误率 = 死循环，普通错误告警永远抓不到。",
+    "每条 trace 绑定 model 版本、prompt 版本、tool 版本，否则回归了也无法归因。"
+   ],
+   "pits": [
+    "只打文本日志，用户投诉「答错了」时只能靠猜和复现。",
+    "监控只看 5xx，Agent 空转烧钱却一片绿。"
+   ],
+   "check": "用户投诉「刚才答错了」，你能拖出他那一轮的完整 trace 吗？",
+   "projects": [
+    {
+     "n": "Langfuse",
+     "u": "https://github.com/langfuse/langfuse",
+     "d": "MIT 协议，OTel 接入，trace + eval + prompt 一体"
+    },
+    {
+     "n": "Arize Phoenix",
+     "u": "https://github.com/Arize-ai/phoenix",
+     "d": "OpenInference，严谨的评测侧"
+    },
+    {
+     "n": "LangSmith",
+     "u": "https://smith.langchain.com",
+     "d": "LangChain 生态原生"
+    },
+    {
+     "n": "OpenLLMetry",
+     "u": "https://github.com/traceloop/openllmetry",
+     "d": "OTel 自动埋点"
+    },
+    {
+     "n": "AgentOps",
+     "u": "https://github.com/AgentOps-AI/agentops",
+     "d": "Agent 会话级观测与回放"
+    },
+    {
+     "n": "Tempo",
+     "u": "https://github.com/grafana/tempo",
+     "d": "已有 Grafana 体系的 trace 后端"
+    },
+    {
+     "n": "Helicone",
+     "u": "https://github.com/Helicone/helicone",
+     "d": "代理式观测，接入最轻"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "g": "C",
+   "name": "安全与合规层",
+   "en": "Security & Compliance",
+   "cover": "on",
+   "role": "假设模型一定会被骗，用架构限制「被骗之后能干什么」。",
+   "comps": [
+    "输入过滤 / 内容安全",
+    "prompt injection 防御（结构隔离 / 双 LLM）",
+    "最小权限",
+    "per-Agent 身份",
+    "短时凭证",
+    "危险操作用人审",
+    "数据分级与脱敏",
+    "PII",
+    "记忆投毒防护",
+    "审计留痕",
+    "kill switch",
+    "合规"
+   ],
+   "decisions": [
+    "安全控制必须落在运行时策略上。system prompt 里写「不要泄露密码」是请求，网关拦截才是控制。",
+    "打断致命三件套：私有数据 + 不可信内容 + 出网能力，三者不要同时出现在一个信任域里。这是目前最有效的一条结构性防线。",
+    "高风险 / 不可逆动作强制人审，审批人与结果进审计日志——这既是安全，也是合规证据。"
+   ],
+   "pits": [
+    "以为写一段安全 prompt 就做完了。OWASP 的结论很明确：prompt injection 没有单一可靠解法，只能纵深防御。",
+    "给 Agent 一个长期管理员 token，一次注入等于全库沦陷。"
+   ],
+   "check": "如果模型此刻被完全劫持，它最多能造成多大破坏？",
+   "projects": [
+    {
+     "n": "Guardrails AI",
+     "u": "https://github.com/guardrails-ai/guardrails",
+     "d": "结构化输出校验 + 护栏"
+    },
+    {
+     "n": "NeMo Guardrails",
+     "u": "https://github.com/NVIDIA/NeMo-Guardrails",
+     "d": "可编程对话护栏"
+    },
+    {
+     "n": "Llama Guard",
+     "u": "https://github.com/meta-llama/PurpleLlama",
+     "d": "内容安全分类模型（PurpleLlama 子项目）"
+    },
+    {
+     "n": "Presidio",
+     "u": "https://github.com/microsoft/presidio",
+     "d": "PII 识别与脱敏"
+    },
+    {
+     "n": "OPA",
+     "u": "https://github.com/open-policy-agent/opa",
+     "d": "工具级授权策略"
+    },
+    {
+     "n": "OWASP Agentic Top 10",
+     "u": "https://genai.owasp.org",
+     "d": "Agent 风险清单，做威胁建模用"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "g": "D",
+   "name": "平台控制面",
+   "en": "Platform Control Plane",
+   "cover": "off",
+   "role": "把能力变成「别人也能用」的产品，而不是内部脚本。",
+   "comps": [
+    "应用 / 工作流可视化编排",
+    "知识库管理",
+    "模型与供应商管理",
+    "prompt / skill 注册表",
+    "工具与插件市场",
+    "API key 与用量看板",
+    "租户后台与白标",
+    "灰度与回滚",
+    "模板市场"
+   ],
+   "decisions": [
+    "所有编排、提示、知识库配置都必须是数据库里的版本化对象，不是代码里的常量。这样运营改得动、重建不丢、可回滚。",
+    "低代码编排给运营、代码编排给工程，但两条路必须共享同一套运行时，否则同一套业务要维护两遍。",
+    "每个能力都要有版本、灰度、回滚三件套。没有回滚的控制面，等于没有控制面。"
+   ],
+   "pits": [
+    "只有一个聊天框，客户没法自己配知识库和流程，每接一个客户都要改代码。",
+    "配置写在环境变量里，换环境就丢，也无法审计谁改过什么。"
+   ],
+   "check": "运营能不能不改代码，自己上线一个新 Agent 应用？",
+   "projects": [
+    {
+     "n": "Dify",
+     "u": "https://github.com/langgenius/dify",
+     "d": "LLMOps 平台标杆：workflow + RAG + Agent + 多租户"
+    },
+    {
+     "n": "Langflow",
+     "u": "https://github.com/langflow-ai/langflow",
+     "d": "可视化编排，MCP 支持好"
+    },
+    {
+     "n": "Flowise",
+     "u": "https://github.com/FlowiseAI/Flowise",
+     "d": "低代码 Agent 搭建"
+    },
+    {
+     "n": "n8n",
+     "u": "https://github.com/n8n-io/n8n",
+     "d": "自动化工作流 + AI 节点"
+    },
+    {
+     "n": "Open WebUI",
+     "u": "https://github.com/open-webui/open-webui",
+     "d": "自托管对话前端"
+    },
+    {
+     "n": "LibreChat",
+     "u": "https://github.com/danny-avila/LibreChat",
+     "d": "多模型对话前端"
+    },
+    {
+     "n": "AnythingLLM",
+     "u": "https://github.com/Mintplex-Labs/anything-llm",
+     "d": "知识库 + 对话一体"
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "g": "D",
+   "name": "基础设施与推理层",
+   "en": "Infrastructure",
+   "cover": "off",
+   "role": "决定延迟、并发上限和单位成本。",
+   "comps": [
+    "推理服务",
+    "GPU 池与调度",
+    "K8s + Ray",
+    "队列 / 消息",
+    "对象存储",
+    "向量库",
+    "Redis",
+    "CI/CD",
+    "IaC",
+    "多区域",
+    "备份"
+   ],
+   "decisions": [
+    "自托管推理只有在「高并发 + 固定模型 + 数据不能出域」三者至少占两样时才划算。否则调 API 更便宜。",
+    "无状态编排 + 有状态存储分离，才能横向扩容；把会话状态绑在某一台机器上，扩容就是重写。",
+    "用 K8s + Ray 做统一调度，GPU 节点按需伸缩；别为波峰常驻一整池卡。"
+   ],
+   "pits": [
+    "买 GPU 自建推理，利用率 10%，算下来比调 API 贵三倍。",
+    "所有服务写死单区域，做海外客户时整套重做。"
+   ],
+   "check": "流量涨 10 倍，你先崩的是模型、数据库还是队列？",
+   "projects": [
+    {
+     "n": "vLLM",
+     "u": "https://github.com/vllm-project/vllm",
+     "d": "PagedAttention，自托管首选"
+    },
+    {
+     "n": "SGLang",
+     "u": "https://github.com/sgl-project/sglang",
+     "d": "高吞吐 / 结构化输出优化"
+    },
+    {
+     "n": "KubeRay",
+     "u": "https://github.com/ray-project/kuberay",
+     "d": "Ray 集群编排"
+    },
+    {
+     "n": "KEDA",
+     "u": "https://github.com/kedacore/keda",
+     "d": "按队列深度弹性伸缩"
+    },
+    {
+     "n": "KServe",
+     "u": "https://github.com/kserve/kserve",
+     "d": "模型服务标准层"
+    },
+    {
+     "n": "NATS",
+     "u": "https://github.com/nats-io/nats-server",
+     "d": "轻量消息 / 任务流"
+    },
+    {
+     "n": "Terraform",
+     "u": "https://github.com/hashicorp/terraform",
+     "d": "IaC 基线"
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "g": "D",
+   "name": "成本与商业化层",
+   "en": "Cost & Unit Economics",
+   "cover": "off",
+   "role": "把 token 成本变成可解释的毛利模型。",
+   "comps": [
+    "每请求成本核算",
+    "模型分级路由",
+    "prompt / 语义缓存命中率",
+    "配额与套餐",
+    "计量计费",
+    "成本归属 chargeback",
+    "毛利看板",
+    "价格实验"
+   ],
+   "decisions": [
+    "每一分钱都要能归到租户 / 应用 / 功能，否则一定越用越亏，而且不知道亏在哪。",
+    "给每个 key 设硬预算上限，跑飞的任务会被自动掐断——这是唯一能防住「一夜烧掉一个月预算」的机制。",
+    "把贵模型只留给必要步骤：分类、改写、抽取走小模型，缓存能拦的不要进模型。"
+   ],
+   "pits": [
+    "只算 API 账单，不算重试、检索、rerank、沙箱、存储。真实成本常常是账单的 2–3 倍。",
+    "套餐写成「不限量」，重度用户吃掉全部毛利。"
+   ],
+   "check": "你能算出「某一个付费用户这个月让你赚了还是亏了」吗？",
+   "projects": [
+    {
+     "n": "LiteLLM",
+     "u": "https://github.com/BerriAI/litellm",
+     "d": "虚拟 key + 预算 + 花费归集"
+    },
+    {
+     "n": "Langfuse",
+     "u": "https://github.com/langfuse/langfuse",
+     "d": "按 trace 记成本"
+    },
+    {
+     "n": "Helicone",
+     "u": "https://github.com/Helicone/helicone",
+     "d": "成本与用量看板"
+    },
+    {
+     "n": "OpenMeter",
+     "u": "https://github.com/openmeterio/openmeter",
+     "d": "用量计量与计费"
+    },
+    {
+     "n": "CloudZero",
+     "u": "https://www.cloudzero.com",
+     "d": "云成本归属"
+    }
+   ]
+  }
+ ],
+ "GROUPS": [
+  {
+   "g": "A",
+   "title": "交付面",
+   "sub": "用户真正接触到的三层",
+   "color": "var(--a)"
+  },
+  {
+   "g": "B",
+   "title": "智能核心",
+   "sub": "模型真正干活的地方，你已知的六层都在这里",
+   "color": "var(--b)"
+  },
+  {
+   "g": "C",
+   "title": "质量与安全面",
+   "sub": "决定能不能上生产",
+   "color": "var(--c)"
+  },
+  {
+   "g": "D",
+   "title": "平台与底座",
+   "sub": "决定能不能规模化、能不能赚钱",
+   "color": "var(--d)"
+  }
+ ],
+ "SUB": {
+  "1": {
+   "note": "这一层不写代码，只做判断。三个模块的顺序就是立项顺序：先定任务，再定自主度，最后算账。",
+   "mods": [
+    {
+     "n": "任务定义",
+     "en": "Task Scoping",
+     "items": [
+      "输入形态：文本 / 文件 / 语音 / 多轮",
+      "输出契约：JSON、文档还是动作",
+      "完成判据：什么叫做完",
+      "失败可接受度：错了谁承担"
+     ]
+    },
+    {
+     "n": "自主度分级",
+     "en": "Autonomy Level",
+     "items": [
+      "L0 固定流程，零自主",
+      "L1 工具自选，路径固定",
+      "L2 多步规划，路径可变",
+      "L3 长跑自主，成本与风险指数上升"
+     ]
+    },
+    {
+     "n": "价值核算",
+     "en": "ROI",
+     "items": [
+      "单任务 token 成本",
+      "替代的人力时薪",
+      "人工兜底与返工比例",
+      "用户可接受的延迟上限"
+     ]
+    }
+   ]
+  },
+  "2": {
+   "note": "用户唯一感知得到的层。它坏了，下面全对也没用。",
+   "mods": [
+    {
+     "n": "传输协议",
+     "en": "Transport",
+     "items": [
+      "HTTP 短请求（<10s 的活）",
+      "SSE 流式",
+      "WebSocket 双向",
+      "异步 202 + task_id"
+     ]
+    },
+    {
+     "n": "任务生命周期",
+     "en": "Task Lifecycle",
+     "items": [
+      "session 与 task 分离",
+      "进度订阅",
+      "断线续传按 token 偏移",
+      "取消与超时"
+     ]
+    },
+    {
+     "n": "边界治理",
+     "en": "Edge Governance",
+     "items": [
+      "鉴权前置，别让请求进到编排器",
+      "幂等键 client_request_id",
+      "限流与并发上限",
+      "文件分片上传"
+     ]
+    }
+   ]
+  },
+  "3": {
+   "note": "多租户的第一道墙。下面四条隔离链路缺一条，就等于没隔离。",
+   "mods": [
+    {
+     "n": "认证",
+     "en": "Authentication",
+     "items": [
+      "OIDC / SSO",
+      "API key 与虚拟 key 派生",
+      "key 可单独吊销",
+      "服务账号与人类账号分开"
+     ]
+    },
+    {
+     "n": "隔离",
+     "en": "Isolation",
+     "items": [
+      "tenant namespace",
+      "向量库 collection 前缀",
+      "对象存储前缀",
+      "行级 / 文档级权限"
+     ]
+    },
+    {
+     "n": "计量与限流",
+     "en": "Metering",
+     "items": [
+      "token 预算",
+      "并发上限",
+      "日 / 月配额",
+      "超限降级而不是直接报错"
+     ]
+    }
+   ]
+  },
+  "4": {
+   "note": "多模型接入不是多写几个 if，是把差异收成一个可计量、可替换的内部接口。",
+   "mods": [
+    {
+     "n": "协议适配",
+     "en": "Adapter",
+     "items": [
+      "OpenAI 兼容层",
+      "Anthropic 消息格式",
+      "Gemini / 其它厂商",
+      "自建 vLLM 走同一接口"
+     ]
+    },
+    {
+     "n": "路由",
+     "en": "Routing",
+     "items": [
+      "按成本分",
+      "按延迟分",
+      "按能力分（function calling / 长上下文 / 多模态）",
+      "按租户等级分"
+     ]
+    },
+    {
+     "n": "韧性",
+     "en": "Resilience",
+     "items": [
+      "fallback 链",
+      "重试与指数退避",
+      "熔断",
+      "超时分级"
+     ]
+    },
+    {
+     "n": "缓存与计量",
+     "en": "Cache & Metering",
+     "items": [
+      "前缀缓存",
+      "语义缓存",
+      "命中率监控",
+      "token 归因到租户与功能"
+     ]
+    }
+   ]
+  },
+  "5": {
+   "note": "Agent 的操作系统。它同时决定「下一步做什么」和「断了还能不能接上」。",
+   "mods": [
+    {
+     "n": "状态机",
+     "en": "State Graph",
+     "items": [
+      "节点与边",
+      "条件分支",
+      "循环与终止条件",
+      "人工节点"
+     ]
+    },
+    {
+     "n": "持久化",
+     "en": "Persistence",
+     "items": [
+      "checkpoint",
+      "事件日志",
+      "重放",
+      "版本化"
+     ]
+    },
+    {
+     "n": "长任务",
+     "en": "Durable Execution",
+     "items": [
+      "挂起与恢复",
+      "人审中断",
+      "定时唤醒",
+      "跨进程迁移"
+     ]
+    },
+    {
+     "n": "并发",
+     "en": "Concurrency",
+     "items": [
+      "子 Agent 派生",
+      "并行分支",
+      "结果汇合",
+      "预算分摊"
+     ]
+    }
+   ]
+  },
+  "6": {
+   "note": "同样的模型，上下文装配不同，效果差一个档。这是整个系统里最便宜的性能来源。",
+   "mods": [
+    {
+     "n": "装配顺序",
+     "en": "Assembly Order",
+     "items": [
+      "稳定前缀：system + 工具 schema",
+      "记忆",
+      "检索结果",
+      "近期对话",
+      "当前输入（越不稳定越靠后）"
+     ]
+    },
+    {
+     "n": "预算分配",
+     "en": "Budget",
+     "items": [
+      "总窗口上限",
+      "各段配额",
+      "超限裁剪优先级",
+      "给输出预留空间"
+     ]
+    },
+    {
+     "n": "压缩",
+     "en": "Compression",
+     "items": [
+      "摘要",
+      "滑窗",
+      "结构化摘要：保留决策与结论",
+      "外置到文件，按需再读"
+     ]
+    },
+    {
+     "n": "缓存友好",
+     "en": "Cache-friendly Layout",
+     "items": [
+      "稳定前缀在前",
+      "动态内容在后",
+      "前缀里不塞时间戳与随机 ID",
+      "工具 schema 顺序固定"
+     ]
+    }
+   ]
+  },
+  "7": {
+   "note": "六层流水线，评测层是回环。图上拆过，这里是逐层要点。",
+   "mods": [
+    {
+     "n": "数据层",
+     "en": "Data",
+     "items": [
+      "源文档质量门槛",
+      "标题 / 章节 / 表格结构保留",
+      "去重与版本",
+      "权限标签"
+     ]
+    },
+    {
+     "n": "切片层",
+     "en": "Chunking",
+     "items": [
+      "语义切片",
+      "按标题层级切",
+      "父子切片：子检索、父回注",
+      "重叠窗口与最小长度"
+     ]
+    },
+    {
+     "n": "查询层",
+     "en": "Query",
+     "items": [
+      "Query Rewrite",
+      "多路改写",
+      "同义词与缩写扩展",
+      "意图分类：该不该检索"
+     ]
+    },
+    {
+     "n": "检索层",
+     "en": "Retrieval",
+     "items": [
+      "向量召回",
+      "BM25 关键词召回",
+      "融合（RRF / 加权）",
+      "元数据与权限过滤"
+     ]
+    },
+    {
+     "n": "排序层",
+     "en": "Rerank",
+     "items": [
+      "cross-encoder 精排",
+      "TopN 截断",
+      "去冗余（MMR）",
+      "低分宁可丢弃"
+     ]
+    },
+    {
+     "n": "评测层",
+     "en": "Evaluation",
+     "items": [
+      "Bad Case 集",
+      "recall@k / nDCG",
+      "答案准确率与引用率",
+      "回归门禁"
+     ]
+    }
+   ]
+  },
+  "8": {
+   "note": "四层，从原始日志到注入上下文。条宽递减，单位价值递增。",
+   "mods": [
+    {
+     "n": "L1 Transcripts",
+     "en": "原始日志 · 全量原文",
+     "items": [
+      "全量会话原文",
+      "工具调用入参与出参",
+      "报错堆栈",
+      "冷存储，按需检索"
+     ]
+    },
+    {
+     "n": "L2 Memory Notes",
+     "en": "记忆笔记 · 随手记录",
+     "items": [
+      "执行中随手写",
+      "一条一个观察或教训",
+      "带时间戳与来源",
+      "允许彼此冲突"
+     ]
+    },
+    {
+     "n": "L3 Representations",
+     "en": "Memory Representations · 结构化知识",
+     "items": [
+      "聚类与去重",
+      "补交叉链接",
+      "Wiki / 图谱形态",
+      "版本与可信度标记"
+     ]
+    },
+    {
+     "n": "L4 Injected Context",
+     "en": "预加载上下文 · 公式卡",
+     "items": [
+      "三十条以内的硬规则",
+      "会话启动自动注入",
+      "优先级最高",
+      "冲突时压过其它来源"
+     ]
+    },
+    {
+     "n": "Dreaming",
+     "en": "离线整理 · 合并与回写",
+     "items": [
+      "批量合并与去重",
+      "消解冲突",
+      "淘汰过期条目",
+      "挑硬规则回写 L4"
+     ]
+    }
+   ]
+  },
+  "9": {
+   "note": "工具是 Agent 的手，也是外部最容易打进来的口子。",
+   "mods": [
+    {
+     "n": "契约",
+     "en": "Contract",
+     "items": [
+      "JSON Schema 参数",
+      "描述写清何时用、何时别用",
+      "统一错误码",
+      "返回体裁剪后再进上下文"
+     ]
+    },
+    {
+     "n": "协议",
+     "en": "Protocol",
+     "items": [
+      "MCP：tools / resources / prompts",
+      "A2A：Agent 间协作",
+      "OpenAPI 转工具",
+      "自建 SDK"
+     ]
+    },
+    {
+     "n": "调用治理",
+     "en": "Invocation",
+     "items": [
+      "超时",
+      "重试与幂等键",
+      "结果截断与摘要",
+      "高危操作二次确认"
+     ]
+    },
+    {
+     "n": "注册与授权",
+     "en": "Registry",
+     "items": [
+      "工具目录",
+      "按租户授权",
+      "版本与弃用",
+      "调用配额"
+     ]
+    }
+   ]
+  },
+  "10": {
+   "note": "让模型生成的代码跑起来，同时保证它跑不出去。",
+   "mods": [
+    {
+     "n": "隔离级别",
+     "en": "Isolation Level",
+     "items": [
+      "microVM",
+      "容器",
+      "进程级",
+      "仅超时、无隔离（最弱）"
+     ]
+    },
+    {
+     "n": "资源约束",
+     "en": "Limits",
+     "items": [
+      "CPU / 内存 / 磁盘配额",
+      "执行时限",
+      "网络白名单",
+      "默认禁止外联"
+     ]
+    },
+    {
+     "n": "生命周期",
+     "en": "Lifecycle",
+     "items": [
+      "镜像预热",
+      "快照与恢复",
+      "产物回收",
+      "日志外带"
+     ]
+    }
+   ]
+  },
+  "11": {
+   "note": "多智能体是十几倍 token 的奢侈品：先证明单 Agent 做不到，再考虑它。",
+   "mods": [
+    {
+     "n": "拓扑",
+     "en": "Topology",
+     "items": [
+      "主管-工人",
+      "流水线",
+      "辩论-评审",
+      "黑板共享"
+     ]
+    },
+    {
+     "n": "通信",
+     "en": "Communication",
+     "items": [
+      "共享状态",
+      "消息传递",
+      "只回传结论摘要",
+      "子 Agent 上下文隔离"
+     ]
+    },
+    {
+     "n": "治理",
+     "en": "Governance",
+     "items": [
+      "预算分摊",
+      "循环与死锁检测",
+      "每个子 Agent 一条 trace",
+      "失败隔离，不连坐"
+     ]
+    }
+   ]
+  },
+  "12": {
+   "note": "上生产的真正瓶颈。没有评测集，一切优化都是在猜。",
+   "mods": [
+    {
+     "n": "数据集",
+     "en": "Dataset",
+     "items": [
+      "真实任务抽样",
+      "难例与边界",
+      "合成补充",
+      "版本化与标注"
+     ]
+    },
+    {
+     "n": "指标",
+     "en": "Metrics",
+     "items": [
+      "任务成功率",
+      "步骤效率",
+      "工具调用正确率",
+      "成本与延迟"
+     ]
+    },
+    {
+     "n": "方法",
+     "en": "Method",
+     "items": [
+      "规则断言",
+      "LLM-as-judge",
+      "人工标注",
+      "轨迹评审"
+     ]
+    },
+    {
+     "n": "门禁",
+     "en": "Gate",
+     "items": [
+      "离线回归",
+      "线上 A/B",
+      "灰度放量",
+      "失败样本回流"
+     ]
+    }
+   ]
+  },
+  "13": {
+   "note": "非确定性系统要能被复盘，否则永远在原地打转。",
+   "mods": [
+    {
+     "n": "Trace 结构",
+     "en": "Trace",
+     "items": [
+      "一次请求一条 trace",
+      "LLM span",
+      "工具 span",
+      "检索 span",
+      "父子关系与时间线"
+     ]
+    },
+    {
+     "n": "指标",
+     "en": "Metrics",
+     "items": [
+      "延迟分位 P50 / P95 / P99",
+      "token 与成本",
+      "错误率",
+      "缓存命中率"
+     ]
+    },
+    {
+     "n": "运维",
+     "en": "Ops",
+     "items": [
+      "回放",
+      "告警",
+      "采样存储",
+      "脱敏与保留期"
+     ]
+    }
+   ]
+  },
+  "14": {
+   "note": "假设模型一定会被骗。架构要做的是「被骗之后损失有限」。",
+   "mods": [
+    {
+     "n": "输入护栏",
+     "en": "Input Guard",
+     "items": [
+      "注入检测",
+      "越权指令剥离",
+      "文件与链接扫描",
+      "长度与格式校验"
+     ]
+    },
+    {
+     "n": "权限最小化",
+     "en": "Least Privilege",
+     "items": [
+      "工具白名单",
+      "高危操作双人审",
+      "沙箱兜底",
+      "凭据不进 prompt"
+     ]
+    },
+    {
+     "n": "输出护栏",
+     "en": "Output Guard",
+     "items": [
+      "内容安全",
+      "PII 脱敏",
+      "引用可追溯",
+      "不确定就明说"
+     ]
+    },
+    {
+     "n": "审计",
+     "en": "Audit",
+     "items": [
+      "全链路留痕",
+      "不可篡改",
+      "保留期",
+      "责任人可定位"
+     ]
+    }
+   ]
+  },
+  "15": {
+   "note": "把能力变成「别人也能用」的产品，而不是一堆内部脚本。",
+   "mods": [
+    {
+     "n": "编排台",
+     "en": "Studio",
+     "items": [
+      "可视化流程",
+      "变量与节点",
+      "调试运行",
+      "版本对比"
+     ]
+    },
+    {
+     "n": "资产管理",
+     "en": "Assets",
+     "items": [
+      "prompt 版本",
+      "知识库",
+      "工具注册",
+      "模型配置"
+     ]
+    },
+    {
+     "n": "发布",
+     "en": "Release",
+     "items": [
+      "环境隔离",
+      "灰度",
+      "回滚",
+      "变更审计"
+     ]
+    }
+   ]
+  },
+  "16": {
+   "note": "决定延迟、并发上限和单位成本。",
+   "mods": [
+    {
+     "n": "推理",
+     "en": "Serving",
+     "items": [
+      "vLLM / SGLang",
+      "连续批处理",
+      "PagedAttention",
+      "量化"
+     ]
+    },
+    {
+     "n": "调度",
+     "en": "Scheduling",
+     "items": [
+      "GPU 池",
+      "优先级队列",
+      "弹性伸缩",
+      "多区域"
+     ]
+    },
+    {
+     "n": "存储与网络",
+     "en": "Storage & Network",
+     "items": [
+      "向量库",
+      "对象存储",
+      "消息队列",
+      "出口与专线"
+     ]
+    }
+   ]
+  },
+  "17": {
+   "note": "token 变成可解释的毛利模型，否则规模越大亏越多。",
+   "mods": [
+    {
+     "n": "归因",
+     "en": "Attribution",
+     "items": [
+      "按租户",
+      "按功能",
+      "按模型",
+      "按步骤"
+     ]
+    },
+    {
+     "n": "杠杆",
+     "en": "Levers",
+     "items": [
+      "缓存",
+      "小模型分流",
+      "上下文瘦身",
+      "批处理"
+     ]
+    },
+    {
+     "n": "定价",
+     "en": "Pricing",
+     "items": [
+      "订阅 + 额度",
+      "按 token",
+      "按任务",
+      "毛利与超卖控制"
+     ]
+    }
+   ]
+  }
+ },
+ "PATHS": [
+  {
+   "cls": "p1",
+   "tag": "PHASE 0 · 2 周",
+   "title": "能给自己/单客户用",
+   "desc": "目标是「跑通 + 看得见」，不追求多租户和商业化。",
+   "items": [
+    "模型网关（LiteLLM，多模型 + fallback）",
+    "单 Agent 状态图（LangGraph）",
+    "一套知识库（RAGFlow 或 LlamaIndex）",
+    "检索：混合 + rerank",
+    "20–30 条真实任务评测集",
+    "trace（Langfuse 自托管）"
+   ],
+   "note": "成本 ≈ 一台 4C8G 云主机 + API 费用。这一步最容易犯的错是提前上多智能体。"
+  },
+  {
+   "cls": "p2",
+   "tag": "PHASE 1 · 3 个月",
+   "title": "能卖给第一批客户",
+   "desc": "目标是「可隔离、可续跑、可回归」，这三件事决定客户敢不敢付钱。",
+   "items": [
+    "+ 租户 / 虚拟 key / 预算上限（第 3 层）",
+    "+ durable runtime（Temporal，人审能等几天）",
+    "+ 代码沙箱（E2B）",
+    "+ eval 进 CI，分数掉了阻断发布",
+    "+ 轻量控制面（应用 / 知识库 / prompt 版本）",
+    "+ 成本看板（按租户 / 功能归集）"
+   ],
+   "note": "这一阶段的关键指标不是 DAU，而是「一次失败能否在 10 分钟内定位」。"
+  },
+  {
+   "cls": "p3",
+   "tag": "PHASE 2 · 6–12 个月",
+   "title": "能规模化并赚钱",
+   "desc": "目标是「别人也能在上面做产品」，这时才需要平台化。",
+   "items": [
+    "+ 多智能体 / supervisor 拆分（按需，不是默认）",
+    "+ MCP 工具市场 + A2A 外部协作",
+    "+ 数据飞轮：失败样本 → 数据集 → LoRA / 蒸馏",
+    "+ 多区域 + GPU 池 + 弹性伸缩",
+    "+ 计量计费 / 套餐 / chargeback",
+    "+ 合规审计、kill switch、白标"
+   ],
+   "note": "到这一步，架构问题基本变成「组织问题」：谁拥有评测集、谁批准工具上线、谁承担成本。"
+  }
+ ],
+ "FAILS": [
+  [
+   "没有评测就上线",
+   "「感觉还行」是唯一验收标准，换个模型后全线退化却没人知道。"
+  ],
+  [
+   "同步接口跑长任务",
+   "网关超时、用户以为卡死，后台还在烧 token。"
+  ],
+  [
+   "状态放进程内存",
+   "一次发布或 OOM，跑到一半的任务全部消失。"
+  ],
+  [
+   "业务直连厂商 SDK",
+   "换模型要改几十处，错误码还不一样。"
+  ],
+  [
+   "把 prompt 当权限",
+   "system prompt 写「不要做 X」，实际没有任何机制拦住 X。"
+  ],
+  [
+   "在应用容器跑生成代码",
+   "共享内核，一次逃逸就是主机沦陷。"
+  ],
+  [
+   "造一个万能工具",
+   "shell + SQL + 发邮件打包给 Agent，等于给它 root。"
+  ],
+  [
+   "全量上下文硬塞",
+   "工具 schema 全注入、文档全塞进 prompt，模型选错还被怪「不行」。"
+  ],
+  [
+   "只测最终答案",
+   "中间选错工具但结果碰巧对，这种成功不可复现。"
+  ],
+  [
+   "成本不做归属",
+   "只知道总账单，不知道哪个租户在亏钱，越用越亏。"
+  ]
+ ],
+ "CHECKS": [
+  "有 20 条以上真实任务的回归集，并且接进了 CI",
+  "主模型厂商故障时，能自动降级到备用且用户无感",
+  "杀掉 worker 再重启，长任务能从断点续跑",
+  "每个租户 / 应用独立虚拟 key，且有硬预算上限",
+  "模型生成的代码在 microVM 沙箱里执行，默认拒绝出网",
+  "危险或不可逆动作强制人审，审批记录进审计日志",
+  "一条 trace 能看到模型、工具、检索的全部 span",
+  "成本能按租户 / 应用 / 功能归集，能算单个用户盈亏",
+  "工具数超过 20 时有分层披露或按场景裁剪",
+  "检索做了混合召回 + rerank + 召回阶段权限过滤",
+  "记忆写入有冲突消解，不是只追加不失效",
+  "运营不改代码就能上线一个新 Agent 应用"
+ ],
+ "SRC": [
+  [
+   "AWS · Build AI agents that scale: a systems-oriented reference architecture",
+   "https://aws.amazon.com/aws-startups/learn/build-ai-agents-that-scale-a-systems-oriented-reference-architecture-for-startups/",
+   "五层参考架构，治理/可观测/信任边界"
+  ],
+  [
+   "arXiv 2501.12904 · A Functional Software Reference Architecture for LLM-Integrated Systems",
+   "https://arxiv.org/pdf/2501.12904",
+   "表现层 / 应用逻辑 / LLM 集成 / 数据管理 + 监控与护栏 sidecar"
+  ],
+  [
+   "MLflow · LLM Application Architecture: 2026 Engineer Guide",
+   "https://www.mlflow.org/articles/llm-application-architecture-a-2026-engineers-guide/",
+   "编排 / 模型 / 数据 / 可观测四层划分"
+  ],
+  [
+   "A2A Protocol · A2A and MCP 详细对比",
+   "https://a2a-protocol.org/latest/topics/a2a-and-mcp/",
+   "MCP 管工具，A2A 管 Agent 协作，互补不竞争"
+  ],
+  [
+   "arXiv 2505.02279 · Agent 互操作协议综述（MCP / ACP / A2A / ANP）",
+   "https://arxiv.org/pdf/2505.02279v1",
+   "四协议对比与分阶段采纳路线"
+  ],
+  [
+   "LiteLLM · Life of a Request / 多租户架构",
+   "https://docs.litellm.ai/docs/proxy/architecture",
+   "虚拟 key / 团队预算 / 路由 / fallback / 花费归集"
+  ],
+  [
+   "Temporal · LangGraph 插件与 durable execution",
+   "https://temporal.io/blog/temporal-langgraph-plugin-durable-execution",
+   "节点级 checkpoint、崩溃恢复、长时间人审等待"
+  ],
+  [
+   "E2B · 开源 runtime 与 Firecracker microVM",
+   "https://github.com/e2b-dev/infra",
+   "每会话独立内核、快照启动、出网白名单"
+  ],
+  [
+   "Mem0 · State of AI Agent Memory 2026",
+   "https://mem0.ai/blog/state-of-ai-agent-memory-2026",
+   "工作 / 情节 / 语义 / 程序四类记忆"
+  ],
+  [
+   "Context Engineering for Long-Running Agents（compaction / 子 Agent 隔离）",
+   "https://kusuma.dev/en/blog/context-engineering-long-running-agents/",
+   "上下文压缩与隔离的四种手法"
+  ],
+  [
+   "MCP-Zero 实验（工具池放大 40 倍，选择准确率 97.6→69.2）",
+   "https://www.agenticfabriq.com/blog/context-engineering-long-horizon-agents",
+   "工具过载导致选择能力下降的量化证据"
+  ],
+  [
+   "Langfuse · AI Agent Observability 与评测闭环",
+   "https://langfuse.com/blog/2024-07-ai-agent-observability-with-langfuse",
+   "trace / session / 在线与离线评测"
+  ],
+  [
+   "AI agent evaluation and observability in 2026（89% 可观测 vs 52% 评测）",
+   "https://www.reactify-solutions.com/articles/agent-evaluation-observability-2026",
+   "OTel GenAI 约定与评测落地差距"
+  ],
+  [
+   "ISACA · Cybersecurity Recommendations for Securing AI Agents",
+   "https://www.isaca.org/resources/white-papers/2026/cybersecurity-recommendations-for-securing-ai-agents",
+   "11 类实践：身份、沙箱、注入防御、记忆安全"
+  ],
+  [
+   "OWASP Agentic Top 10（2026）在 AWS 上的缓解",
+   "https://repost.aws/articles/ARB-_7KJJlR9ayP9qCkeGicw/managing-the-owasp-ai-top-10-in-agentic-ai-and-llm-applications-on-aws",
+   "目标劫持 / 工具滥用 / 权限滥用 / 级联失败"
+  ],
+  [
+   "生产级 RAG 系统参考架构",
+   "https://www.cnblogs.com/wintersun/p/23731197",
+   "离线摄取与在线查询解耦、混合检索、rerank"
+  ],
+  [
+   "Multi-Agent Orchestration in Production: 5 Patterns",
+   "https://carlosarias.com/blog/multi-agent-orchestration-production/",
+   "supervisor 是 2026 生产默认，swarm 最难排障"
+  ],
+  [
+   "Temporal · Durable, flexible multi-agent systems",
+   "https://temporal.io/blog/durable-flexible-multi-agent-systems",
+   "为什么「durable」是承重词"
+  ],
+  [
+   "Prompt Caching 201（OpenAI）",
+   "https://developers.openai.com/cookbook/examples/prompt_caching_201",
+   "前缀缓存命中条件与成本/延迟收益"
+  ]
+ ]
+}

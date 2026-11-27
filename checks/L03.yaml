@@ -1,0 +1,32 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L03-P0-002
+  layer: 3
+  group: A
+  title: 全平台共用一个模型 key
+  severity: P0
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      - '**/*.env'
+      - '**/.env*'
+      pattern: OPENAI_API_KEY|ANTHROPIC_API_KEY|DASHSCOPE_API_KEY
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: tenant.{0,10}(key|token)|per_tenant|key_?pool|rotate
+  fix: key 按租户或按用途拆分，最小权限 + 定期轮换，泄露只影响一个租户。
+  impact: 泄露一次等于全损，且无法定位是谁烧的。
+  derived_from: L3/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

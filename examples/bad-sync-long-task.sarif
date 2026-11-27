@@ -1,0 +1,669 @@
+{
+ "version": "2.1.0",
+ "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+ "runs": [
+  {
+   "tool": {
+    "driver": {
+     "name": "aivitals",
+     "version": "0.1.0",
+     "informationUri": "https://github.com/cunzailv/aivitals",
+     "rules": [
+      {
+       "id": "L02-P0-001",
+       "name": "同步接口里跑长任务",
+       "shortDescription": {
+        "text": "同步接口里跑长任务"
+       },
+       "fullDescription": {
+        "text": "网关先超时，用户以为卡死，后台还在烧 token。"
+       },
+       "help": {
+        "text": "超过 30 秒的链路一律异步化：入队 → 立刻返回 task_id → 前端订阅进度。",
+        "markdown": "超过 30 秒的链路一律异步化：入队 → 立刻返回 task_id → 前端订阅进度。"
+       },
+       "properties": {
+        "severity": "P0",
+        "layer": 2,
+        "kind": "defect",
+        "tags": [
+         "ai-architecture",
+         "L2"
+        ]
+       }
+      },
+      {
+       "id": "L03-P0-002",
+       "name": "全平台共用一个模型_key",
+       "shortDescription": {
+        "text": "全平台共用一个模型 key"
+       },
+       "fullDescription": {
+        "text": "泄露一次等于全损，且无法定位是谁烧的。"
+       },
+       "help": {
+        "text": "key 按租户或按用途拆分，最小权限 + 定期轮换，泄露只影响一个租户。",
+        "markdown": "key 按租户或按用途拆分，最小权限 + 定期轮换，泄露只影响一个租户。"
+       },
+       "properties": {
+        "severity": "P0",
+        "layer": 3,
+        "kind": "risky_default",
+        "tags": [
+         "ai-architecture",
+         "L3"
+        ]
+       }
+      },
+      {
+       "id": "L04-P1-003",
+       "name": "业务直连厂商_SDK",
+       "shortDescription": {
+        "text": "业务直连厂商 SDK"
+       },
+       "fullDescription": {
+        "text": "换模型要改几十处，错误码还不一样。"
+       },
+       "help": {
+        "text": "抽一层模型网关：统一鉴权、路由、fallback、重试、计量；业务只依赖网关接口。",
+        "markdown": "抽一层模型网关：统一鉴权、路由、fallback、重试、计量；业务只依赖网关接口。"
+       },
+       "properties": {
+        "severity": "P1",
+        "layer": 4,
+        "kind": "risky_default",
+        "tags": [
+         "ai-architecture",
+         "L4"
+        ]
+       }
+      },
+      {
+       "id": "L05-P0-004",
+       "name": "状态放进程内存",
+       "shortDescription": {
+        "text": "状态放进程内存"
+       },
+       "fullDescription": {
+        "text": "一次发布或 OOM，跑到一半的任务全部消失。"
+       },
+       "help": {
+        "text": "任务状态落到外部存储（redis / pg / checkpoint），进程可重启、可迁移。",
+        "markdown": "任务状态落到外部存储（redis / pg / checkpoint），进程可重启、可迁移。"
+       },
+       "properties": {
+        "severity": "P0",
+        "layer": 5,
+        "kind": "defect",
+        "tags": [
+         "ai-architecture",
+         "L5"
+        ]
+       }
+      },
+      {
+       "id": "L06-P1-005",
+       "name": "全量上下文硬塞",
+       "shortDescription": {
+        "text": "全量上下文硬塞"
+       },
+       "fullDescription": {
+        "text": "工具 schema 全注入、文档全塞进 prompt，模型选错还被怪「不行」。"
+       },
+       "help": {
+        "text": "上下文按额度分配：system / 记忆 / 检索 / 工具 schema 各有预算，超了就压缩或拆子 Agent。",
+        "markdown": "上下文按额度分配：system / 记忆 / 检索 / 工具 schema 各有预算，超了就压缩或拆子 Agent。"
+       },
+       "properties": {
+        "severity": "P1",
+        "layer": 6,
+        "kind": "risky_default",
+        "tags": [
+         "ai-architecture",
+         "L6"
+        ]
+       }
+      },
+      {
+       "id": "L07-P0-006",
+       "name": "检索没有权限过滤",
+       "shortDescription": {
+        "text": "检索没有权限过滤"
+       },
+       "fullDescription": {
+        "text": "A 租户的文档被 B 租户检索到，一次就够上新闻。"
+       },
+       "help": {
+        "text": "检索前强制加租户/ACL 过滤，写在数据访问层，不靠每个调用点自觉。",
+        "markdown": "检索前强制加租户/ACL 过滤，写在数据访问层，不靠每个调用点自觉。"
+       },
+       "properties": {
+        "severity": "P0",
+        "layer": 7,
+        "kind": "defect",
+        "tags": [
+         "ai-architecture",
+         "L7"
+        ]
+       }
+      },
+      {
+       "id": "L08-P1-007",
+       "name": "记忆全量塞进向量库",
+       "shortDescription": {
+        "text": "记忆全量塞进向量库"
+       },
+       "fullDescription": {
+        "text": "检索回来全是噪声，还不如不记。"
+       },
+       "help": {
+        "text": "记忆分层：原文冷存、笔记提炼、结构化沉淀，按 TTL 淘汰，定期去重。",
+        "markdown": "记忆分层：原文冷存、笔记提炼、结构化沉淀，按 TTL 淘汰，定期去重。"
+       },
+       "properties": {
+        "severity": "P1",
+        "layer": 8,
+        "kind": "risky_default",
+        "tags": [
+         "ai-architecture",
+         "L8"
+        ]
+       }
+      },
+      {
+       "id": "L09-P0-008",
+       "name": "造一个万能工具",
+       "shortDescription": {
+        "text": "造一个万能工具"
+       },
+       "fullDescription": {
+        "text": "shell + SQL + 发邮件打包给 Agent，等于给它 root。"
+       },
+       "help": {
+        "text": "工具按动作拆细，参数白名单 + 审批 + 沙箱；不要给 Agent 一个能碰全系统的入口。",
+        "markdown": "工具按动作拆细，参数白名单 + 审批 + 沙箱；不要给 Agent 一个能碰全系统的入口。"
+       },
+       "properties": {
+        "severity": "P0",
+        "layer": 9,
+        "kind": "defect",
+        "tags": [
+         "ai-architecture",
+         "L9"
+        ]
+       }
+      },
+      {
+       "id": "L10-P0-009",
+       "name": "在应用容器跑生成代码",
+       "shortDescription": {
+        "text": "在应用容器跑生成代码"
+       },
+       "fullDescription": {
+        "text": "共享内核，一次逃逸就是主机沦陷。"
+       },
+       "help": {
+        "text": "生成代码进独立沙箱（microVM / gVisor / 一次性容器），不与应用共享内核。",
+        "markdown": "生成代码进独立沙箱（microVM / gVisor / 一次性容器），不与应用共享内核。"
+       },
+       "properties": {
+        "severity": "P0",
+        "layer": 10,
+        "kind": "defect",
+        "tags": [
+         "ai-architecture",
+         "L10"
+        ]
+       }
+      },
+      {
+       "id": "L12-P1-010",
+       "name": "没有评测就上线",
+       "shortDescription": {
+        "text": "没有评测就上线"
+       },
+       "fullDescription": {
+        "text": "「感觉还行」是唯一验收标准，换个模型后全线退化却没人知道。"
+       },
+       "help": {
+        "text": "先攒 20-50 条真实任务做回归集，接进 CI；每次改 prompt/模型都跑一遍。",
+        "markdown": "先攒 20-50 条真实任务做回归集，接进 CI；每次改 prompt/模型都跑一遍。"
+       },
+       "properties": {
+        "severity": "P1",
+        "layer": 12,
+        "kind": "missing_capability",
+        "tags": [
+         "ai-architecture",
+         "L12"
+        ]
+       }
+      },
+      {
+       "id": "L14-P0-011",
+       "name": "把_prompt_当权限",
+       "shortDescription": {
+        "text": "把 prompt 当权限"
+       },
+       "fullDescription": {
+        "text": "system prompt 写「不要做 X」，实际没有任何机制拦住 X。"
+       },
+       "help": {
+        "text": "权限写在代码里：工具白名单、参数校验、危险动作人审；prompt 只能表达意图，不能当门禁。",
+        "markdown": "权限写在代码里：工具白名单、参数校验、危险动作人审；prompt 只能表达意图，不能当门禁。"
+       },
+       "properties": {
+        "severity": "P0",
+        "layer": 14,
+        "kind": "defect",
+        "tags": [
+         "ai-architecture",
+         "L14"
+        ]
+       }
+      },
+      {
+       "id": "L17-P1-012",
+       "name": "成本不做归属",
+       "shortDescription": {
+        "text": "成本不做归属"
+       },
+       "fullDescription": {
+        "text": "只知道总账单，不知道哪个租户在亏钱，越用越亏。"
+       },
+       "help": {
+        "text": "每次模型调用统一埋点：tokens、模型、任务、租户，落到 usage 表，可按租户聚合与限额。",
+        "markdown": "每次模型调用统一埋点：tokens、模型、任务、租户，落到 usage 表，可按租户聚合与限额。"
+       },
+       "properties": {
+        "severity": "P1",
+        "layer": 17,
+        "kind": "risky_default",
+        "tags": [
+         "ai-architecture",
+         "L17"
+        ]
+       }
+      }
+     ]
+    }
+   },
+   "results": [
+    {
+     "ruleId": "L02-P0-001",
+     "level": "error",
+     "message": {
+      "text": "同步接口里跑长任务｜网关先超时，用户以为卡死，后台还在烧 token。"
+     },
+     "properties": {
+      "severity": "P0",
+      "confidence": "high",
+      "layer": 2
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "app.py"
+        },
+        "region": {
+         "startLine": 16,
+         "snippet": {
+          "text": "result = await chain.ainvoke({\"input\": payload[\"q\"]})"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L03-P0-002",
+     "level": "error",
+     "message": {
+      "text": "全平台共用一个模型 key｜泄露一次等于全损，且无法定位是谁烧的。"
+     },
+     "properties": {
+      "severity": "P0",
+      "confidence": "high",
+      "layer": 3
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "app.py"
+        },
+        "region": {
+         "startLine": 9,
+         "snippet": {
+          "text": "OPENAI_API_KEY = os.environ[\"OPENAI_API_KEY\"]"
+         }
+        }
+       }
+      },
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "app.py"
+        },
+        "region": {
+         "startLine": 10,
+         "snippet": {
+          "text": "llm = ChatOpenAI(api_key=OPENAI_API_KEY)"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L05-P0-004",
+     "level": "error",
+     "message": {
+      "text": "状态放进程内存｜一次发布或 OOM，跑到一半的任务全部消失。"
+     },
+     "properties": {
+      "severity": "P0",
+      "confidence": "high",
+      "layer": 5
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "app.py"
+        },
+        "region": {
+         "startLine": 8,
+         "snippet": {
+          "text": "_sessions = {}"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L07-P0-006",
+     "level": "error",
+     "message": {
+      "text": "检索没有权限过滤｜A 租户的文档被 B 租户检索到，一次就够上新闻。"
+     },
+     "properties": {
+      "severity": "P0",
+      "confidence": "high",
+      "layer": 7
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "rag.py"
+        },
+        "region": {
+         "startLine": 2,
+         "snippet": {
+          "text": "return vectorstore.similarity_search(query_embedding, k=5)"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L09-P0-008",
+     "level": "error",
+     "message": {
+      "text": "造一个万能工具｜shell + SQL + 发邮件打包给 Agent，等于给它 root。"
+     },
+     "properties": {
+      "severity": "P0",
+      "confidence": "high",
+      "layer": 9
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "tools.py"
+        },
+        "region": {
+         "startLine": 1,
+         "snippet": {
+          "text": "def run_shell(cmd: str):"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L10-P0-009",
+     "level": "error",
+     "message": {
+      "text": "在应用容器跑生成代码｜共享内核，一次逃逸就是主机沦陷。"
+     },
+     "properties": {
+      "severity": "P0",
+      "confidence": "high",
+      "layer": 10
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "app.py"
+        },
+        "region": {
+         "startLine": 23,
+         "snippet": {
+          "text": "return {\"out\": exec(payload[\"code\"])}"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L14-P0-011",
+     "level": "error",
+     "message": {
+      "text": "把 prompt 当权限｜system prompt 写「不要做 X」，实际没有任何机制拦住 X。"
+     },
+     "properties": {
+      "severity": "P0",
+      "confidence": "high",
+      "layer": 14
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "prompt.py"
+        },
+        "region": {
+         "startLine": 1,
+         "snippet": {
+          "text": "SYSTEM = \"你是助手。不要执行删除操作，禁止访问用户隐私数据。\""
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L04-P1-003",
+     "level": "warning",
+     "message": {
+      "text": "业务直连厂商 SDK｜换模型要改几十处，错误码还不一样。"
+     },
+     "properties": {
+      "severity": "P1",
+      "confidence": "high",
+      "layer": 4
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 3,
+         "snippet": {
+          "text": "c1 = OpenAI()"
+         }
+        }
+       }
+      },
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 4,
+         "snippet": {
+          "text": "c2 = Anthropic()"
+         }
+        }
+       }
+      },
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 5,
+         "snippet": {
+          "text": "c3 = ChatOpenAI()"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L06-P1-005",
+     "level": "warning",
+     "message": {
+      "text": "全量上下文硬塞｜工具 schema 全注入、文档全塞进 prompt，模型选错还被怪「不行」。"
+     },
+     "properties": {
+      "severity": "P1",
+      "confidence": "high",
+      "layer": 6
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "context.py"
+        },
+        "region": {
+         "startLine": 1,
+         "snippet": {
+          "text": "system_prompt = base_prompt + \"\\n\".join(history)"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L08-P1-007",
+     "level": "warning",
+     "message": {
+      "text": "记忆全量塞进向量库｜检索回来全是噪声，还不如不记。"
+     },
+     "properties": {
+      "severity": "P1",
+      "confidence": "high",
+      "layer": 8
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "memory.py"
+        },
+        "region": {
+         "startLine": 2,
+         "snippet": {
+          "text": "store.add_documents(docs)"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "ruleId": "L12-P1-010",
+     "level": "warning",
+     "message": {
+      "text": "没有评测就上线｜「感觉还行」是唯一验收标准，换个模型后全线退化却没人知道。"
+     },
+     "properties": {
+      "severity": "P1",
+      "confidence": "medium",
+      "layer": 12
+     }
+    },
+    {
+     "ruleId": "L17-P1-012",
+     "level": "warning",
+     "message": {
+      "text": "成本不做归属｜只知道总账单，不知道哪个租户在亏钱，越用越亏。"
+     },
+     "properties": {
+      "severity": "P1",
+      "confidence": "high",
+      "layer": 17
+     },
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 3,
+         "snippet": {
+          "text": "c1 = OpenAI()"
+         }
+        }
+       }
+      },
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 4,
+         "snippet": {
+          "text": "c2 = Anthropic()"
+         }
+        }
+       }
+      },
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "llm_extra.py"
+        },
+        "region": {
+         "startLine": 5,
+         "snippet": {
+          "text": "c3 = ChatOpenAI()"
+         }
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

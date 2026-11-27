@@ -1,0 +1,30 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L08-P1-007
+  layer: 8
+  group: B
+  title: 记忆全量塞进向量库
+  severity: P1
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: add_documents|add_texts|\.upsert\(|vector.{0,10}add
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: summar|dedup|evict|ttl|decay|compact
+  fix: 记忆分层：原文冷存、笔记提炼、结构化沉淀，按 TTL 淘汰，定期去重。
+  impact: 检索回来全是噪声，还不如不记。
+  derived_from: L8/pits/1
+  maturity_gate: production
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

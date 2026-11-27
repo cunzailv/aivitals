@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.aivitals-report/
+aivitals-report/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+# 原始资料默认私有，不进公开仓库
+corpus/sources/*
+!corpus/sources/.gitkeep

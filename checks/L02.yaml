@@ -1,0 +1,30 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L02-P0-001
+  layer: 2
+  group: A
+  title: 同步接口里跑长任务
+  severity: P0
+  kind: defect
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: await\s+.{0,60}(ainvoke|\.invoke|run_agent|agent\.run|chain\.a|agenerate)
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: task_id|job_id|enqueue|celery|arq|bullmq|BackgroundTasks|asyncio\.Queue
+  fix: 超过 30 秒的链路一律异步化：入队 → 立刻返回 task_id → 前端订阅进度。
+  impact: 网关先超时，用户以为卡死，后台还在烧 token。
+  derived_from: L2/pits/1
+  maturity_gate: prototype
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

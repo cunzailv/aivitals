@@ -1,0 +1,30 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L07-P0-006
+  layer: 7
+  group: B
+  title: 检索没有权限过滤
+  severity: P0
+  kind: defect
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: similarity_search|vectorstore\.search|\.query\(\s*query_embedding|collection\.query|retriever\.invoke
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: tenant_id|tenantId|acl|permission|where=\{|filter=
+  fix: 检索前强制加租户/ACL 过滤，写在数据访问层，不靠每个调用点自觉。
+  impact: A 租户的文档被 B 租户检索到，一次就够上新闻。
+  derived_from: L7/pits/1
+  maturity_gate: production
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

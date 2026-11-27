@@ -1,0 +1,30 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L17-P1-012
+  layer: 17
+  group: D
+  title: 成本不做归属
+  severity: P1
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: OpenAI\(|Anthropic\(|ChatOpenAI\(|client\.chat|\.invoke\(
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: usage|token_count|cost|billing|meter|budget
+  fix: 每次模型调用统一埋点：tokens、模型、任务、租户，落到 usage 表，可按租户聚合与限额。
+  impact: 只知道总账单，不知道哪个租户在亏钱，越用越亏。
+  derived_from: L17/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app

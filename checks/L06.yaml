@@ -1,0 +1,30 @@
+yaml_version: 0.1
+as_of: 2026-11-27
+checks:
+- id: L06-P1-005
+  layer: 6
+  group: B
+  title: 全量上下文硬塞
+  severity: P1
+  kind: risky_default
+  detect:
+    all_of:
+    - type: regex_any
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: system_prompt\s*=\s*.*\+|\"\\n\"\.join\(.{0,25}(history|docs|tools)|messages\.append\(.{0,20}history
+      max_hits: 3
+    - type: none
+      globs:
+      - '**/*.py'
+      - '**/*.ts'
+      pattern: tiktoken|count_tokens|truncate|max_tokens|compress|summariz
+  fix: 上下文按额度分配：system / 记忆 / 检索 / 工具 schema 各有预算，超了就压缩或拆子 Agent。
+  impact: 工具 schema 全注入、文档全塞进 prompt，模型选错还被怪「不行」。
+  derived_from: L6/pits/1
+  maturity_gate: internal
+  as_of: '2026-11-27'
+  applies_to:
+  - ai_native_app
+  - ai_enabled_app
