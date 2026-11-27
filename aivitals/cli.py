@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import detect, profile as prof, report, rules
+from . import claims as claims_mod, detect, profile as prof, report, rules
 from .model import AuditResult
 
 VERSION = "0.1.0"
@@ -106,6 +106,50 @@ def cmd_scan(args: argparse.Namespace) -> int:
                 tmp.cleanup()
 
 
+def cmd_claims(args: argparse.Namespace) -> int:
+    root = Path(args.target).expanduser()
+    if not root.exists():
+        raise SystemExit(f"路径不存在：{root}")
+    docs = []
+    for raw in args.doc:
+        p = Path(raw) if Path(raw).is_absolute() else root / raw
+        if p.exists():
+            docs.append(p)
+        else:
+            print(f"[skip] 文档不存在：{p}", file=sys.stderr)
+    if not docs:
+        raise SystemExit("没有可用文档（默认找 README.md）")
+
+    profile, files = prof.build(root)
+    preds, perrs = claims_mod.load_predicates(Path(args.predicates))
+    for e in perrs:
+        print(f"[claims] {e}", file=sys.stderr)
+    if not preds:
+        raise SystemExit("谓词库为空")
+
+    results = []
+    for doc in docs:
+        results.extend(claims_mod.run(root, doc, files, profile, preds))
+
+    outdir = Path(args.out).expanduser()
+    outdir.mkdir(parents=True, exist_ok=True)
+    body = "\n".join(claims_mod.to_markdown([r for r in results], d) for d in docs)
+    (outdir / "claims.md").write_text("# 声明校验报告\n\n" + body, encoding="utf-8")
+    (outdir / "claims.json").write_text(json.dumps({
+        "documents": [str(d) for d in docs],
+        "results": [r.to_dict() for r in results],
+        "disclaimer": "未找到证据不等于没有实现；矛盾仅表示当前代码与声明不一致。",
+    }, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    counts = {v: sum(1 for r in results if r.verdict == v) for v in claims_mod.VERDICTS}
+    print(f"AIVitals claims · {root}")
+    print(f"  文档 {len(docs)} 份 · 声明 {len(results)} 条 · 矛盾 {counts['contradicted']} · 部分 {counts['partial']} · 已证实 {counts['confirmed']} · 未证 {counts['unsupported']}")
+    for r in results:
+        print(f"  [{r.verdict:<12}] {r.claim.text[:46]}")
+    print(f"  输出：{outdir/'claims.md'}, {outdir/'claims.json'}")
+    return 2 if counts["contradicted"] else 0
+
+
 def cmd_checks(args: argparse.Namespace) -> int:
     checks, errs = rules.load(Path(args.checks))
     for e in errs:
@@ -170,6 +214,13 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--fail-on", choices=["P0", "P1", "P2", "P3"], help="达到该级别返回非零退出码")
     s.add_argument("--keep-clone", action="store_true", help="保留临时 clone（调试用）")
     s.set_defaults(func=cmd_scan)
+
+    cl = sub.add_parser("claims", help="校验文档声明与代码是否一致")
+    cl.add_argument("target", help="仓库路径")
+    cl.add_argument("--doc", action="append", default=None, help="相对仓库的文档路径，可多次；默认 README.md")
+    cl.add_argument("--predicates", default=str(ROOT / "claims" / "predicates.yaml"))
+    cl.add_argument("--out", default="./aivitals-report")
+    cl.set_defaults(func=cmd_claims, doc=["README.md"] if True else [])
 
     c = sub.add_parser("checks", help="列出规则")
     c.add_argument("--checks", default=str(DEFAULT_CHECKS))

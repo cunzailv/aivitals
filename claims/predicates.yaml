@@ -1,0 +1,69 @@
+# 通用谓词库（core）
+# 与 claims/predicates.geo.yaml 的区别：这里的谓词适用于所有 AI 项目，
+# GEO 包只对采样类平台生效。混用会让通用项目被按 GEO 标准判红。
+# 来源：桌面 GEO 报告 §20 技术验收清单，拆出通用部分
+# 许可：CC-BY-4.0
+
+meta:
+  pack: core
+  as_of: 2026-11-27
+  source_ref: "GEO 全链路系统架构报告 §20.2 技术验收（通用项）"
+
+predicates:
+
+  - id: tenant_isolation
+    title: 多租户隔离
+    claim_patterns: ["多租户", "租户隔离", "数据隔离", "租户之间"]
+    probes:
+      positive:
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts", "**/*.go"], pattern: "tenant_id|tenantId", ask: "持久层或请求层出现租户标识"}
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts", "**/*.go"], pattern: "filter\\s*=.*tenant|where.*tenant|tenant_id\\s*=\\s*req", ask: "查询强制带租户条件"}
+      negative:
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts", "**/*.go"], pattern: "tenant_id\\s*=\\s*[\"'][^\"']*[\"']", ask: "租户标识被写成常量"}
+    fix: 租户过滤写在数据访问层，不靠每个调用点自觉。
+    on_contradicted: "该声明与当前实现矛盾：租户标识是硬编码常量，无法按请求隔离。"
+
+  - id: idempotent_write
+    title: 写操作幂等
+    claim_patterns: ["幂等", "重试不重复", "不会重复扣费", "不会重复下单"]
+    probes:
+      positive:
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts", "**/*.go"], pattern: "idempotency_key|client_request_id|request_id|dedupe", ask: "写接口接收幂等键"}
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts", "**/*.go"], pattern: "on_conflict|unique|INSERT OR IGNORE|upsert", ask: "落库层有去重约束"}
+      negative: []
+    fix: 幂等键存在业务侧，重复请求返回首次结果。
+    on_contradicted: ""
+
+  - id: schema_validation
+    title: 结构化输出校验
+    claim_patterns: ["Schema 校验", "schema 校验", "结构化输出", "类型安全"]
+    probes:
+      positive:
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts"], pattern: "pydantic|BaseModel|zod|jsonschema|model_validate|parse_obj", ask: "边界处有 schema 定义"}
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts"], pattern: "ValidationError|safeParse|parse\\(.*schema", ask: "校验失败有处理"}
+      negative:
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts"], pattern: "json\\.loads\\([^)]*\\)\\s*\\[", ask: "模型输出裸解析后直接取字段"}
+    fix: 模型输出与 API 入参都在边界处校验，失败要有兜底而不是抛给用户。
+    on_contradicted: "该声明与当前实现矛盾：模型输出被裸解析后直接取字段，没有 schema 校验。"
+
+  - id: audit_log
+    title: 关键操作审计
+    claim_patterns: ["审计", "操作留痕", "可追溯操作"]
+    probes:
+      positive:
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts"], pattern: "audit_log|auditlog|audit_event|AuditLog", ask: "存在审计写入"}
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts"], pattern: "actor|operator_id|user_id.*action|action.*target", ask: "审计字段含操作者与对象"}
+      negative: []
+    fix: 写操作记录 actor / action / target / 时间，并与业务写入同事务或可补偿。
+    on_contradicted: ""
+
+  - id: cost_accounting
+    title: 模型调用成本归属
+    claim_patterns: ["成本记录", "成本归属", "token 计量", "按租户计费", "成本可控"]
+    probes:
+      positive:
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts"], pattern: "usage|token_count|prompt_tokens|completion_tokens|cost", ask: "调用处记录 tokens 或费用"}
+        - {type: regex_any, globs: ["**/*.py", "**/*.ts"], pattern: "tenant_id.*usage|usage.*tenant|billing|meter", ask: "成本可归属到租户/任务"}
+      negative: []
+    fix: 统一在模型调用封装处埋点，落 usage 表，可按租户聚合与限额。
+    on_contradicted: ""
