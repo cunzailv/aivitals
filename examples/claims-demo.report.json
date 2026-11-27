@@ -1,0 +1,156 @@
+{
+ "documents": [
+  "fixtures/claims-demo/README.md"
+ ],
+ "results": [
+  {
+   "claim": "本平台支持多租户，租户之间数据完全隔离",
+   "doc_line": 3,
+   "predicate": "tenant_isolation",
+   "predicate_title": "多租户隔离",
+   "verdict": "partial",
+   "evidence": [
+    {
+     "file": "app.py",
+     "line": 1,
+     "snippet": "tenant_id = \"default\""
+    },
+    {
+     "file": "app.py",
+     "line": 1,
+     "snippet": "tenant_id = \"default\""
+    }
+   ],
+   "positive": [
+    [
+     "持久层或请求层出现租户标识",
+     "命中 1 处"
+    ],
+    [
+     "查询强制带租户条件",
+     "未命中"
+    ]
+   ],
+   "negative": [
+    [
+     "租户标识被写成常量",
+     "命中 1 处"
+    ]
+   ],
+   "note": "能力存在，但发现一处反向疑点，建议人工核查"
+  },
+  {
+   "claim": "所有写操作支持幂等，重试不会重复扣费",
+   "doc_line": 4,
+   "predicate": "idempotent_write",
+   "predicate_title": "写操作幂等",
+   "verdict": "unsupported",
+   "evidence": [],
+   "positive": [
+    [
+     "写接口接收幂等键",
+     "未命中"
+    ],
+    [
+     "落库层有去重约束",
+     "未命中"
+    ]
+   ],
+   "negative": [],
+   "note": "仓库中没有找到与该声明相关的实现，可能是规划中能力或纯文档项目"
+  },
+  {
+   "claim": "API 有 Schema 校验",
+   "doc_line": 5,
+   "predicate": "schema_validation",
+   "predicate_title": "结构化输出校验",
+   "verdict": "contradicted",
+   "evidence": [
+    {
+     "file": "app.py",
+     "line": 4,
+     "snippet": "return json.loads(resp)[\"answer\"]"
+    }
+   ],
+   "positive": [
+    [
+     "边界处有 schema 定义",
+     "未命中"
+    ],
+    [
+     "校验失败有处理",
+     "未命中"
+    ]
+   ],
+   "negative": [
+    [
+     "模型输出裸解析后直接取字段",
+     "命中 1 处"
+    ]
+   ],
+   "note": "该声明与当前实现矛盾：模型输出被裸解析后直接取字段，没有 schema 校验。"
+  },
+  {
+   "claim": "关键操作有审计日志",
+   "doc_line": 6,
+   "predicate": "audit_log",
+   "predicate_title": "关键操作审计",
+   "verdict": "unsupported",
+   "evidence": [],
+   "positive": [
+    [
+     "存在审计写入",
+     "未命中"
+    ],
+    [
+     "审计字段含操作者与对象",
+     "未命中"
+    ]
+   ],
+   "negative": [],
+   "note": "仓库中没有找到与该声明相关的实现，可能是规划中能力或纯文档项目"
+  },
+  {
+   "claim": "LLM 调用有成本记录，可按租户聚合",
+   "doc_line": 7,
+   "predicate": "cost_accounting",
+   "predicate_title": "模型调用成本归属",
+   "verdict": "confirmed",
+   "evidence": [
+    {
+     "file": "billing.py",
+     "line": 1,
+     "snippet": "def meter(usage):"
+    },
+    {
+     "file": "billing.py",
+     "line": 2,
+     "snippet": "cost = usage[\"tokens\"] * 0.0001"
+    },
+    {
+     "file": "billing.py",
+     "line": 3,
+     "snippet": "return cost"
+    },
+    {
+     "file": "billing.py",
+     "line": 1,
+     "snippet": "def meter(usage):"
+    }
+   ],
+   "positive": [
+    [
+     "调用处记录 tokens 或费用",
+     "命中 3 处"
+    ],
+    [
+     "成本可归属到租户/任务",
+     "命中 1 处"
+    ]
+   ],
+   "negative": [],
+   "note": "代码中找到了完整实现证据"
+  }
+ ],
+ "disclaimer": "未找到证据不等于没有实现；矛盾仅表示当前代码与声明不一致。"
+}

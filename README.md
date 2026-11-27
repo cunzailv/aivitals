@@ -30,7 +30,8 @@ pip install -e .
 aivitals checks                      # 列出规则
 aivitals scan ./repo                 # 默认输出 md + json + sarif
 aivitals scan https://github.com/org/repo --out ./aivitals-report
-aivitals eval --verbose              # 用标注样例跑召回/误报
+aivitals claims ./repo --doc README.md   # 校验 README 宣称与代码是否一致
+aivitals eval --verbose                  # 用标注样例跑召回/误报
 ```
 
 `--maturity production` 可覆盖档位；`--fail-on P0` 让 CI 在 P0 时失败。
@@ -49,6 +50,7 @@ aivitals eval --verbose              # 用标注样例跑召回/误报
 - 项目画像（类型 / 档位 / 语言 / 依赖 / 部署）
 - 12 条规则（L2/L3/L4/L5/L6/L7/L8/L9/L10/L12/L14/L17）
 - 静态检测：regex / 文件存在性 / 依赖 / 组合条件
+- claim 校验 v0：声明抽取 → 5 条 core 谓词 → 代码探针 → 四态判定（矛盾/部分/证实/未证）
 - 四类输出 + 退出码
 - eval：2 个标注样例，`recall 1.000`、健康仓库误报 `0`（样本少，只证明链路成立）
 
@@ -56,8 +58,8 @@ aivitals eval --verbose              # 用标注样例跑召回/误报
 
 - 只覆盖 Python / TypeScript；Go / Java 等会明确标注「未纳入检测」
 - 无 LLM 语义复核（`--offline` 是唯一模式）
-- claim-vs-code 校验（谓词库与探针已有草案，见 `claims/`，引擎尚未接入）
 - 17 层里目前只有 8 层有规则
+- claim 只支持 5 条 core 谓词与中文短语匹配；无 LLM 抽取，英文声明识别率低
 
 ## 规则
 
