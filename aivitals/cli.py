@@ -8,10 +8,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import claims as claims_mod, detect, profile as prof, prompts, report, rules
+from . import assets, claims as claims_mod, detect, profile as prof, prompts, report, rules
 from .model import AuditResult
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(__file__).resolve().parent / "data"
 DEFAULT_CHECKS = DATA / "checks"
@@ -305,6 +305,30 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--lang", default="zh", choices=["zh", "en"])
     pr.add_argument("--copy", action="store_true", help="同时复制到剪贴板（macOS）")
     pr.set_defaults(func=cmd_prompt)
+
+    for kind, label in (("agent", "agents"), ("skill", "skills")):
+        grp = sub.add_parser(kind, help=f"{label} 资产")
+        grp.set_defaults(kind=label)
+        gsub = grp.add_subparsers(dest="action", required=True)
+        gsub.add_parser("list", help="列出").set_defaults(func=cmd_asset_list)
+        gshow = gsub.add_parser("show", help="查看全文")
+        gshow.add_argument("name")
+        gshow.set_defaults(func=cmd_asset_show)
+
+    w = sub.add_parser("workflow", help="工作流")
+    wsub = w.add_subparsers(dest="action", required=True)
+    wsub.add_parser("list", help="列出工作流").set_defaults(func=cmd_workflow_list)
+    wrun = wsub.add_parser("run", help="执行一条工作流")
+    wrun.add_argument("name")
+    wrun.add_argument("--path", default=".")
+    wrun.add_argument("--checks", default=str(DEFAULT_CHECKS))
+    wrun.set_defaults(func=cmd_workflow_run)
+
+    ex = sub.add_parser("export", help="把智能体/技能/工作流铺到项目里")
+    ex.add_argument("--kind", choices=["agents", "skills", "workflows", "all"], default="all")
+    ex.add_argument("--to", default=None, help="目标目录；不给则用 .claude/agents 等默认位置")
+    ex.add_argument("--root", default=".")
+    ex.set_defaults(func=cmd_export)
     return p
 
 
@@ -324,6 +348,59 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     if info["source_dir"]:
         print(f"  原文：{info['source_dir']}（私有，未进公开仓库）")
     print("  下一步：挑候选 → 补 detect/impact/fix/derived_from → 加 fixture → aivitals eval")
+    return 0
+
+
+def cmd_asset_list(args: argparse.Namespace) -> int:
+    rows = assets.items(DATA, args.kind)
+    print(f"{len(rows)} 个 {args.kind}")
+    for it in rows:
+        print(f"  {it['name']:<22} {it['description'][:64]}")
+    return 0
+
+
+def cmd_asset_show(args: argparse.Namespace) -> int:
+    try:
+        print(assets.show(DATA, args.kind, args.name))
+    except KeyError as e:
+        print(e, file=sys.stderr)
+        return 1
+    return 0
+
+
+def cmd_workflow_list(args: argparse.Namespace) -> int:
+    import yaml
+    from . import workflow as wf_mod
+    rows = wf_mod.load_all(DATA / "workflows")
+    print(f"{len(rows)} 条工作流")
+    for wf in rows:
+        steps = len(wf.get("steps") or [])
+        print(f"  {wf['name']:<12} {steps} 步 · {wf.get('description', '')[:56]}")
+    return 0
+
+
+def cmd_workflow_run(args: argparse.Namespace) -> int:
+    from . import workflow as wf_mod
+    wf = wf_mod.find(DATA / "workflows", args.name)
+    if not wf:
+        print(f"没有工作流：{args.name}", file=sys.stderr)
+        return 1
+    root = Path(args.path).expanduser().resolve()
+    if not root.exists():
+        print(f"路径不存在：{root}", file=sys.stderr)
+        return 1
+    return wf_mod.run(wf, root, Path(args.checks))
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    kinds = assets.KINDS if args.kind == "all" else (args.kind,)
+    root = Path(args.root).expanduser()
+    for kind in kinds:
+        dest = (Path(args.to).expanduser() / kind) if args.to else (root / assets.DEFAULT_DEST[kind])
+        written = assets.export(DATA, kind, dest)
+        print(f"{kind} → {dest}（{len(written)} 个文件）")
+        for p in written:
+            print(f"  {p}")
     return 0
 
 

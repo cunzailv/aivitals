@@ -1,0 +1,11 @@
+# 工作流：按顺序编排 CLI 动作，可整条复跑
+name: audit
+description: 一次完整体检：扫描并把 README 宣称一起对正，产出 md/json/sarif
+steps:
+- id: scan
+  run: scan
+  with:
+    target: .
+    doc: README.md
+    format: md,json,sarif
+    out: .aivitals-report

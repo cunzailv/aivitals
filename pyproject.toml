@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aivitals"
-version = "0.2.1"
+version = "0.3.0"
 description = "AI architecture check for AI projects: layer audit, bug-prone pattern scan, claim-vs-code verification. 100% local."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -40,7 +40,7 @@ Changelog = "https://github.com/cunzailv/aivitals/blob/main/CHANGELOG.md"
 include = ["aivitals*"]
 
 [tool.setuptools.package-data]
-aivitals = ["data/checks/*.yaml", "data/claims/*.yaml", "data/architecture.json"]
+aivitals = ["data/checks/*.yaml", "data/claims/*.yaml", "data/architecture.json", "data/agents/*.md", "data/skills/*/SKILL.md", "data/workflows/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

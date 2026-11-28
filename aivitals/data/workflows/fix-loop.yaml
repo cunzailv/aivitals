@@ -1,0 +1,17 @@
+# 工作流：按顺序编排 CLI 动作，可整条复跑
+name: fix-loop
+description: 修复前后对比：建基线 → 改 → 复检，只关注新增与消失
+steps:
+- id: baseline
+  run: scan
+  with:
+    target: .
+    baseline: .aivitals.json
+    update_baseline: true
+- id: recheck
+  run: scan
+  with:
+    target: .
+    baseline: .aivitals.json
+    format: md,json
+    out: .aivitals-report

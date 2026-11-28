@@ -1,0 +1,19 @@
+# 工作流：按顺序编排 CLI 动作，可整条复跑
+name: pr-gate
+description: CI 门禁：先建基线避免历史问题，再按 P0 拦截并产出 SARIF
+steps:
+- id: baseline
+  run: scan
+  with:
+    target: .
+    baseline: .aivitals.json
+    update_baseline: true
+  continue_on_error: true
+- id: gate
+  run: scan
+  with:
+    target: .
+    baseline: .aivitals.json
+    fail_on: P0
+    format: md,sarif
+    out: aivitals-report

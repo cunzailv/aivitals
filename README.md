@@ -71,6 +71,7 @@ aivitals scan ./repo --baseline .aivitals.json --update-baseline   # 建立基�
 aivitals scan ./repo --baseline .aivitals.json                     # 只报新增
 aivitals eval --verbose                        # 用标注样例跑召回/误报
 aivitals mcp                                   # 以 MCP Server 运行，给 AI 客户端调用
+aivitals workflow run audit --path .           # 一条命令跑完体检 + 声明对正
 ```
 
 `--maturity production` 可覆盖档位；`--fail-on P0` 让 CI 在 P0 时失败（退出码 2）。
@@ -119,6 +120,28 @@ aivitals prompt --for audit --lang en   # 英文版
 ```
 
 完整五套模板见 [`docs/prompts.md`](docs/prompts.md)。
+
+## 智能体 / 技能 / 工作流
+
+除了命令行，还自带 3 个智能体、3 个技能、3 条工作流，可直接铺进 AI 客户端：
+
+```bash
+aivitals agent list      # aivitals-auditor / aivitals-claims / aivitals-fixer
+aivitals skill list      # audit / claims / fix
+aivitals workflow list   # audit / pr-gate / fix-loop
+aivitals export --to .claude   # 一次性导出到项目（agents + skills + workflows）
+```
+
+| 资产 | 作用 |
+|---|---|
+| `aivitals-auditor` | 体检官：跑 scan、读报告、按证据汇报，不改代码 |
+| `aivitals-claims` | 声明对正官：四态判定，`contradicted` 必须给 `file:line` |
+| `aivitals-fixer` | 修复官：一次只改一条 P0，改完用 baseline 复检 |
+| `workflow run audit` | 本地体检：scan + README 对正 |
+| `workflow run pr-gate` | CI 门禁：建基线 → `--fail-on P0`，P0 时退出码 2 |
+| `workflow run fix-loop` | 修复前后对比，只关注新增与消失 |
+
+工作流是**真执行**的（`aivitals workflow run pr-gate --path .` 会真的跑完并返回退出码），不是文档示例。语法与导出细节见 [`docs/agents.md`](docs/agents.md)。
 
 ## 给 AI 用（MCP）
 

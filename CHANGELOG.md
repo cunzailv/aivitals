@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.0 — 2026-11-28
+
+### 智能体、技能、工作流
+
+- 3 个智能体：`aivitals-auditor` / `aivitals-claims` / `aivitals-fixer`，带 frontmatter 与工具集，可直接放进 `.claude/agents`
+- 3 个技能：`aivitals-audit` / `aivitals-claims` / `aivitals-fix`
+- 3 条工作流，**可执行**：`audit`（体检 + 对正）、`pr-gate`（基线 + P0 拦截，退出码 2）、`fix-loop`（前后对比）
+- 新增命令：`agent list|show`、`skill list|show`、`workflow list|run`、`export --to <dir>`
+- 已实测：`workflow run audit` 在问题样例上产出报告；`workflow run pr-gate` 在健康样例上退出 0
+
 ## v0.2.1 — 2026-11-28
 
 ### 给 AI 的提示词

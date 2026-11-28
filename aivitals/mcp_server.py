@@ -18,7 +18,7 @@ from . import claims as claims_mod, detect, profile as prof, report, rules
 
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "aivitals"
-SERVER_VERSION = "0.2.1"
+SERVER_VERSION = "0.3.0"
 
 TOOLS = [
     {
