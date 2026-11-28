@@ -8,10 +8,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import claims as claims_mod, detect, profile as prof, report, rules
+from . import claims as claims_mod, detect, profile as prof, prompts, report, rules
 from .model import AuditResult
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(__file__).resolve().parent / "data"
 DEFAULT_CHECKS = DATA / "checks"
@@ -298,6 +298,13 @@ def build_parser() -> argparse.ArgumentParser:
     ing.add_argument("--draft-dir", default=str(DEFAULT_CHECKS / "_draft"), help="候选输出目录")
     ing.add_argument("--no-source", action="store_true", help="只出候选，不存原文")
     ing.set_defaults(func=cmd_ingest)
+
+    pr = sub.add_parser("prompt", help="打印可直接粘给 AI 的提示词")
+    pr.add_argument("--for", dest="kind", default="audit", choices=["audit", "claims", "fix", "ci"],
+                    help="场景：体检 / 声明对正 / 逐条修复 / CI 接入")
+    pr.add_argument("--lang", default="zh", choices=["zh", "en"])
+    pr.add_argument("--copy", action="store_true", help="同时复制到剪贴板（macOS）")
+    pr.set_defaults(func=cmd_prompt)
     return p
 
 
@@ -317,6 +324,19 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     if info["source_dir"]:
         print(f"  原文：{info['source_dir']}（私有，未进公开仓库）")
     print("  下一步：挑候选 → 补 detect/impact/fix/derived_from → 加 fixture → aivitals eval")
+    return 0
+
+
+def cmd_prompt(args: argparse.Namespace) -> int:
+    text = prompts.render(args.kind, args.lang, VERSION)
+    print(text)
+    if args.copy:
+        try:
+            import subprocess
+            subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=True)
+            print("\n[已复制到剪贴板]", file=sys.stderr)
+        except (OSError, subprocess.CalledProcessError):
+            print("[复制失败：请手动选中上面的文本]", file=sys.stderr)
     return 0
 
 

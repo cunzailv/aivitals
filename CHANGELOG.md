@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.1 — 2026-11-28
+
+### 给 AI 的提示词
+
+- 新增 `aivitals prompt --for audit|claims|fix|ci [--lang en] [--copy]`，直接打印可粘贴给 AI 的整段提示词
+- README 增加「复制给 AI」一节：不开终端，粘一段就能让 AI 自己装、自己扫、按证据汇报
+- `docs/prompts.md` 收录五套模板与「为什么这样写」
+- 提示词内置安装命令与版本号、写死四态口径（`unsupported` 只能说「未找到证据」）、禁止批量改代码
+- 免账号分发：`releases/` 内置 0.2.0/0.2.1 的 wheel 与 sdist，raw 链接可直接 `pip install`
+
 ## v0.2.0 — 2026-11-27
 
 ### 更聪明

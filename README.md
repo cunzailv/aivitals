@@ -85,6 +85,41 @@ aivitals ingest --source ./报告.docx --id geo-2026
 
 它会切节、抽候选、标好层与级别，产出 `_draft/geo-2026.candidates.yaml` 待审清单。**候选不参与扫描**，人工补上 `detect` 与 fixture 后才会生效——细节见 [`docs/ingest.md`](docs/ingest.md)。
 
+## 复制给 AI：最省事的用法
+
+不想开终端，就把下面整段粘给 Claude / Cursor / ChatGPT / 豆包，它会自己装、自己扫，并按证据汇报：
+
+```text
+用 AIVitals 给当前仓库做架构体检，结论必须来自报告，不要凭印象点评。
+
+1) 先确认可用：aivitals --version
+   没有就安装：pip install "https://github.com/cunzailv/aivitals/raw/main/releases/aivitals-0.2.1-py3-none-any.whl"
+   （国内网络超时就换成 https://gh-proxy.com/https://github.com/cunzailv/aivitals/raw/main/releases/aivitals-0.2.1-py3-none-any.whl）
+
+2) 扫描，并把 README 的宣称一起对正：
+   aivitals scan . --doc README.md --format md,json --out .aivitals-report
+
+3) 读 .aivitals-report/report.md，按这个格式回答：
+   【结论】总体（critical_gaps/weak/adequate/…）、P0 与 P1 数量、最该先修的一条
+   【P0 清单】每条给 `文件:行号 · 问题 · 为什么在这档位会出事 · 最小改法`
+   【覆盖与局限】原样说明哪些语言/层没覆盖
+   【下一步】按依赖顺序 1-3 个动作
+
+约束：没有 file:line 证据的结论不写；先给方案，不要直接改代码；不评「架构优雅」这类主观项。
+```
+
+其它场景直接打印现成提示词，`--copy` 会同时进剪贴板（macOS）：
+
+```bash
+aivitals prompt --for audit --copy     # 体检
+aivitals prompt --for claims            # 只做 README 宣称对正
+aivitals prompt --for fix               # 按报告逐条修，每轮复检
+aivitals prompt --for ci                # 接 CI 门禁
+aivitals prompt --for audit --lang en   # 英文版
+```
+
+完整五套模板见 [`docs/prompts.md`](docs/prompts.md)。
+
 ## 给 AI 用（MCP）
 
 `aivitals mcp` 起一个 stdio MCP Server，四个工具：
