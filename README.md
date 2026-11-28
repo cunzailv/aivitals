@@ -44,6 +44,12 @@ pip install "git+https://github.com/cunzailv/aivitals.git"
 git clone https://github.com/cunzailv/aivitals.git && cd aivitals && pip install -e .
 ```
 
+国内网络直连 github.com 可能超时，给链接加代理前缀即可：
+
+```bash
+pip install "https://gh-proxy.com/https://github.com/cunzailv/aivitals/raw/main/releases/aivitals-0.2.0-py3-none-any.whl"
+```
+
 `aivitals --version` 应输出 `aivitals 0.2.0`。
 
 从源码：
