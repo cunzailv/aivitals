@@ -28,9 +28,23 @@ aivitals scan ./your-ai-project --format md,json,sarif
 ## 安装
 
 ```bash
-pip install aivitals          # 或 pipx install aivitals
-aivitals --version
+pip install aivitals          # PyPI 发布后可用（当前版本尚未上传）
 ```
+
+在 PyPI 之前，用三条任一方式安装：
+
+```bash
+# 1) 直接装 wheel（不需要 PyPI 账号，也不需要 git）
+pip install "https://github.com/cunzailv/aivitals/raw/main/releases/aivitals-0.2.0-py3-none-any.whl"
+
+# 2) 从仓库装
+pip install "git+https://github.com/cunzailv/aivitals.git"
+
+# 3) 源码
+git clone https://github.com/cunzailv/aivitals.git && cd aivitals && pip install -e .
+```
+
+`aivitals --version` 应输出 `aivitals 0.2.0`。
 
 从源码：
 
